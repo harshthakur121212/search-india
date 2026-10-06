@@ -5,10 +5,7 @@
 
 export default async function handler(req, res) {
 
-  // ----------------------------------------
   // CORS
-  // ----------------------------------------
-
   res.setHeader("Access-Control-Allow-Origin", "*");
   res.setHeader(
     "Access-Control-Allow-Methods",
@@ -19,18 +16,12 @@ export default async function handler(req, res) {
     "Content-Type"
   );
 
-  // ----------------------------------------
-  // OPTIONS
-  // ----------------------------------------
-
+  // OPTIONS request
   if (req.method === "OPTIONS") {
     return res.status(204).end();
   }
 
-  // ----------------------------------------
-  // ONLY POST
-  // ----------------------------------------
-
+  // Only POST allowed
   if (req.method !== "POST") {
     return res.status(405).json({
       error: "POST method required"
@@ -38,23 +29,22 @@ export default async function handler(req, res) {
   }
 
   // ----------------------------------------
-  // API KEY
+  // VERCEL ENVIRONMENT VARIABLE
   // ----------------------------------------
 
   const apiKey =
-    process.env.SEARCH_INDIA_API_KEY;
+    process.env.INDIAN_SEARCH_API_KEY;
 
   if (!apiKey) {
     return res.status(500).json({
-      error:
-        "SEARCH_INDIA_API_KEY is missing in Vercel"
+      error: "INDIAN_SEARCH_API_KEY is missing in Vercel"
     });
   }
 
   try {
 
     // ----------------------------------------
-    // GET USER QUESTION
+    // USER QUESTION
     // ----------------------------------------
 
     const query =
@@ -67,15 +57,19 @@ export default async function handler(req, res) {
     }
 
     // ----------------------------------------
-    // GEMINI API
+    // GEMINI MODEL
     // ----------------------------------------
 
     const model = "gemini-3.8-flash";
 
-    const url =
+    const apiUrl =
       `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent`;
 
-    const response = await fetch(url, {
+    // ----------------------------------------
+    // GEMINI REQUEST
+    // ----------------------------------------
+
+    const response = await fetch(apiUrl, {
       method: "POST",
 
       headers: {
@@ -84,25 +78,27 @@ export default async function handler(req, res) {
       },
 
       body: JSON.stringify({
-
         contents: [
           {
             role: "user",
-
             parts: [
               {
                 text:
-                  `You are Search India AI.
+`You are Search India AI.
 
 Answer the user's question accurately,
 clearly and helpfully.
 
 Use the same language as the user.
-If the user asks in Hindi, answer in Hindi.
-If the user asks in English, answer in English.
 
-Do not make up facts.
-If you are unsure, clearly say that you are unsure.
+If the user asks in Hindi,
+answer in Hindi.
+
+If the user asks in English,
+answer in English.
+
+Do not invent facts.
+If you are unsure, say so clearly.
 
 User question:
 ${query.slice(0, 4000)}`
@@ -115,12 +111,11 @@ ${query.slice(0, 4000)}`
           temperature: 0.4,
           maxOutputTokens: 1000
         }
-
       })
     });
 
     // ----------------------------------------
-    // READ RESPONSE
+    // READ GEMINI RESPONSE
     // ----------------------------------------
 
     const data = await response.json();
@@ -137,13 +132,12 @@ ${query.slice(0, 4000)}`
     if (!response.ok) {
 
       console.error(
-        "Gemini error:",
+        "Gemini API error:",
         JSON.stringify(data)
       );
 
       return res.status(502).json({
         error: "Gemini API failed",
-
         detail:
           data?.error?.message ||
           "Gemini request failed"
@@ -151,7 +145,7 @@ ${query.slice(0, 4000)}`
     }
 
     // ----------------------------------------
-    // GET ANSWER
+    // GET AI ANSWER
     // ----------------------------------------
 
     const answer =
@@ -172,8 +166,7 @@ ${query.slice(0, 4000)}`
       );
 
       return res.status(502).json({
-        error:
-          "Gemini returned no answer"
+        error: "Gemini returned no answer"
       });
     }
 
@@ -196,12 +189,8 @@ ${query.slice(0, 4000)}`
     );
 
     return res.status(500).json({
-      error:
-        "AI backend failed",
-
-      detail:
-        error?.message ||
-        "Unknown error"
+      error: "AI backend failed",
+      detail: error?.message || "Unknown error"
     });
   }
-    }
+}
