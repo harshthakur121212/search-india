@@ -1,4 +1,3 @@
-
 export default async function handler(req, res) {
   res.setHeader("Access-Control-Allow-Origin", "*");
   res.setHeader("Access-Control-Allow-Methods", "POST, OPTIONS");
@@ -10,7 +9,7 @@ export default async function handler(req, res) {
 
   if (req.method !== "POST") {
     return res.status(405).json({
-      error: "Use POST to ask a question"
+      error: "POST method required"
     });
   }
 
@@ -18,7 +17,7 @@ export default async function handler(req, res) {
 
   if (!apiKey) {
     return res.status(500).json({
-      error: "GEMINI_API_KEY is not configured in Vercel"
+      error: "GEMINI_API_KEY missing"
     });
   }
 
@@ -40,41 +39,61 @@ export default async function handler(req, res) {
           "x-goog-api-key": apiKey
         },
         body: JSON.stringify({
-          contents: [{
-            parts: [{
-              text:
-                "You are Search India, a helpful assistant. " +
-                "Answer in the same language as the user's question. " +
-                "Be accurate, clear, and concise. If unsure, say so.\n\n" +
-                "Question: " + query.slice(0, 4000)
-            }]
-          }]
+          contents: [
+            {
+              parts: [
+                {
+                  text:
+                    "You are Search India AI. " +
+                    "Answer in the same language as the user. " +
+                    "Be accurate, helpful and concise.\n\n" +
+                    "Question: " +
+                    query.slice(0, 4000)
+                }
+              ]
+            }
+          ]
         })
       }
     );
 
     const data = await response.json();
 
+    console.log("Gemini status:", response.status);
+    console.log("Gemini response:", JSON.stringify(data));
+
     if (!response.ok) {
-      console.error("Gemini API error:", data);
       return res.status(502).json({
-        error: "AI provider request failed",
-        detail: data.error?.message || "Check API key, model, and quota."
+        error: "Gemini API failed",
+        detail:
+          data?.error?.message ||
+          "Gemini API request failed"
       });
     }
 
-    const answer = data.candidates?.[0]?.content?.parts
-      ?.map(part => part.text || "")
-      .join("\n");
+    const answer =
+      data?.candidates?.[0]?.content?.parts
+        ?.map(part => part.text || "")
+        .join("")
+        .trim();
+
+    if (!answer) {
+      return res.status(502).json({
+        error: "Gemini returned no answer"
+      });
+    }
 
     return res.status(200).json({
       query,
-      answer: answer || "अभी जवाब उपलब्ध नहीं है।"
+      answer
     });
+
   } catch (error) {
-    console.error("AI backend error:", error);
+    console.error("Backend error:", error);
+
     return res.status(500).json({
-      error: "AI backend failed"
+      error: "AI backend failed",
+      detail: error.message
     });
   }
-}
+      }
