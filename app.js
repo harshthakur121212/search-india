@@ -1,238 +1,853 @@
-export default async function handler(req, res) {
-  // -----------------------------
-  // CORS
-  // -----------------------------
-  res.setHeader("Access-Control-Allow-Origin", "*");
-  res.setHeader("Access-Control-Allow-Methods", "GET, OPTIONS");
-  res.setHeader("Access-Control-Allow-Headers", "Content-Type");
+// ==========================================
+// 🇮🇳 SEARCH INDIA
+// MAIN APP.JS
+// ==========================================
 
-  if (req.method === "OPTIONS") {
-    return res.status(204).end();
-  }
 
-  if (req.method !== "GET") {
-    return res.status(405).json({
-      error: "Only GET requests are allowed"
-    });
-  }
+// ==========================================
+// API
+// ==========================================
 
-  // -----------------------------
-  // Get search query
-  // -----------------------------
-  const q = String(req.query?.q || "").trim();
+const API_BASE = window.location.origin;
 
-  if (!q) {
-    return res.status(400).json({
-      error: "Search query required"
-    });
-  }
 
-  // -----------------------------
-  // Tavily API Key
-  // -----------------------------
-  const apiKey = process.env.TAVILY_API_KEY;
+// ==========================================
+// ELEMENTS
+// ==========================================
 
-  if (!apiKey) {
-    return res.status(500).json({
-      error: "TAVILY_API_KEY is not configured"
-    });
-  }
+const searchForm =
+  document.getElementById("searchForm");
 
-  // -----------------------------
-  // Direct URL detection
-  // -----------------------------
-  let directUrl = null;
+const searchInput =
+  document.getElementById("searchInput");
+
+const searchBtn =
+  document.getElementById("searchBtn");
+
+const searchStatus =
+  document.getElementById("searchStatus");
+
+const searchSection =
+  document.getElementById("searchSection");
+
+const results =
+  document.getElementById("results");
+
+const answerSection =
+  document.getElementById("answerSection");
+
+const directAnswer =
+  document.getElementById("directAnswer");
+
+const answerSource =
+  document.getElementById("answerSource");
+
+
+// ==========================================
+// TIMEOUT FETCH
+// ==========================================
+
+async function fetchWithTimeout(
+  url,
+  options = {},
+  timeout = 30000
+) {
+
+  const controller =
+    new AbortController();
+
+  const timer =
+    setTimeout(
+      () => controller.abort(),
+      timeout
+    );
 
   try {
-    const possibleUrl =
-      q.startsWith("http://") || q.startsWith("https://")
-        ? new URL(q)
-        : null;
 
-    if (
-      possibleUrl &&
-      (possibleUrl.protocol === "http:" ||
-        possibleUrl.protocol === "https:")
-    ) {
-      directUrl = possibleUrl.toString();
-    }
-  } catch {
-    directUrl = null;
-  }
-
-  // -----------------------------
-  // If user entered a URL
-  // -----------------------------
-  if (directUrl) {
-    return res.status(200).json({
-      query: q,
-      results: [
-        {
-          title: directUrl,
-          snippet: "यह website खोलने के लिए नीचे परिणाम पर tap करें।",
-          url: directUrl
-        }
-      ],
-      source: "Direct URL"
-    });
-  }
-
-  // -----------------------------
-  // Tavily Web Search
-  // -----------------------------
-  try {
-    const response = await fetch(
-      "https://api.tavily.com/search",
+    return await fetch(
+      url,
       {
-        method: "POST",
-
-        headers: {
-          "Content-Type": "application/json"
-        },
-
-        body: JSON.stringify({
-          api_key: apiKey,
-          query: q,
-          search_depth: "basic",
-          topic: "general",
-          max_results: 10,
-          include_answer: false,
-          include_raw_content: false,
-          include_images: false
-        })
+        ...options,
+        signal: controller.signal
       }
     );
 
-    const text = await response.text();
+  } finally {
+
+    clearTimeout(timer);
+
+  }
+
+}
+
+
+// ==========================================
+// HTML SECURITY
+// ==========================================
+
+function escapeHTML(value) {
+
+  return String(value ?? "")
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#039;");
+
+}
+
+
+// ==========================================
+// STATUS
+// ==========================================
+
+function setStatus(
+  message,
+  type = ""
+) {
+
+  if (!searchStatus) return;
+
+  searchStatus.textContent =
+    message;
+
+  searchStatus.className =
+    "status";
+
+  if (type) {
+
+    searchStatus.classList.add(
+      type
+    );
+
+  }
+
+}
+
+
+// ==========================================
+// BUTTON LOADING
+// ==========================================
+
+function setLoading(
+  loading
+) {
+
+  if (!searchBtn) return;
+
+  if (loading) {
+
+    searchBtn.disabled = true;
+
+    searchBtn.textContent =
+      "खोज रहे हैं...";
+
+  } else {
+
+    searchBtn.disabled = false;
+
+    searchBtn.textContent =
+      "खोजें";
+
+  }
+
+}
+
+
+// ==========================================
+// AI LOADING
+// ==========================================
+
+function showAILoading() {
+
+  if (!answerSection) return;
+
+  answerSection.classList.remove(
+    "hidden"
+  );
+
+  if (directAnswer) {
+
+    directAnswer.innerHTML = `
+      <div>
+        🤖 AI जवाब तैयार कर रहा है...
+      </div>
+    `;
+
+  }
+
+  if (answerSource) {
+
+    answerSource.textContent =
+      "Search India AI";
+
+  }
+
+}
+
+
+// ==========================================
+// AI SEARCH
+// ==========================================
+
+async function getAIAnswer(
+  query
+) {
+
+  showAILoading();
+
+  try {
+
+    const response =
+      await fetchWithTimeout(
+
+        `${API_BASE}/api/ask`,
+
+        {
+          method: "POST",
+
+          headers: {
+            "Content-Type":
+              "application/json"
+          },
+
+          body: JSON.stringify({
+            query: query
+          })
+
+        },
+
+        35000
+
+      );
+
+
+    const text =
+      await response.text();
+
 
     let data;
 
+
     try {
-      data = JSON.parse(text);
+
+      data =
+        JSON.parse(text);
+
     } catch {
-      return res.status(502).json({
-        error: "Invalid Tavily response"
-      });
+
+      throw new Error(
+        "AI server का response सही नहीं है।"
+      );
+
     }
+
 
     if (!response.ok) {
-      console.error("Tavily error:", response.status, data);
 
-      return res.status(502).json({
-        error: "Web search provider error",
-        status: response.status,
-        detail:
-          data?.detail ||
-          data?.error ||
-          "Tavily search failed"
-      });
+      throw new Error(
+
+        data?.error ||
+        data?.detail ||
+        `AI Error ${response.status}`
+
+      );
+
     }
 
-    // -----------------------------
-    // Convert Tavily results
-    // -----------------------------
-    const tavilyResults = Array.isArray(data?.results)
+
+    const answer =
+      String(
+        data?.answer || ""
+      ).trim();
+
+
+    if (!answer) {
+
+      throw new Error(
+        "AI ने खाली उत्तर दिया।"
+      );
+
+    }
+
+
+    if (answerSection) {
+
+      answerSection.classList.remove(
+        "hidden"
+      );
+
+    }
+
+
+    if (directAnswer) {
+
+      directAnswer.innerHTML =
+
+        escapeHTML(answer)
+          .replace(/\n/g, "<br>");
+
+    }
+
+
+    if (answerSource) {
+
+      answerSource.textContent =
+
+        data?.model
+          ? `Search India AI • ${data.model}`
+          : "Search India AI";
+
+    }
+
+
+    return data;
+
+
+  } catch (error) {
+
+    console.error(
+      "AI ERROR:",
+      error
+    );
+
+
+    if (answerSection) {
+
+      answerSection.classList.remove(
+        "hidden"
+      );
+
+    }
+
+
+    if (directAnswer) {
+
+      if (
+        error.name ===
+        "AbortError"
+      ) {
+
+        directAnswer.innerHTML = `
+          ⚠️ AI response में ज्यादा समय लग रहा है।
+          <br><br>
+          कृपया थोड़ी देर बाद फिर कोशिश करें।
+        `;
+
+      } else {
+
+        directAnswer.innerHTML = `
+          ⚠️ AI अभी जवाब नहीं दे पा रहा है।
+          <br><br>
+          Web Search नीचे उपलब्ध हो सकता है।
+        `;
+
+      }
+
+    }
+
+
+    if (answerSource) {
+
+      answerSource.textContent =
+        "Search India AI";
+
+    }
+
+
+    return null;
+
+  }
+
+}
+
+
+// ==========================================
+// RESULT CARD
+// ==========================================
+
+function makeResultCard(
+  item
+) {
+
+  const card =
+    document.createElement(
+      "article"
+    );
+
+  card.className =
+    "result-card";
+
+
+  const title =
+    escapeHTML(
+      item?.title ||
+      "Untitled"
+    );
+
+
+  const snippet =
+    escapeHTML(
+      item?.snippet ||
+      item?.content ||
+      "जानकारी उपलब्ध नहीं है।"
+    );
+
+
+  const url =
+    String(
+      item?.url || ""
+    );
+
+
+  let linkHTML = "";
+
+
+  if (
+    url &&
+    /^https?:\/\//i.test(url)
+  ) {
+
+    linkHTML = `
+
+      <a
+        href="${escapeHTML(url)}"
+        target="_blank"
+        rel="noopener noreferrer"
+      >
+        परिणाम खोलें →
+      </a>
+
+    `;
+
+  }
+
+
+  card.innerHTML = `
+
+    <h3>
+      ${title}
+    </h3>
+
+    <p>
+      ${snippet}
+    </p>
+
+    ${linkHTML}
+
+  `;
+
+
+  return card;
+
+}
+
+
+// ==========================================
+// SHOW RESULTS
+// ==========================================
+
+function showResults(
+  data
+) {
+
+  if (!results) return;
+
+
+  results.innerHTML = "";
+
+
+  const items =
+    Array.isArray(
+      data?.results
+    )
       ? data.results
       : [];
 
-    const results = tavilyResults
-      .map(item => ({
-        title: String(item?.title || "Untitled"),
-        snippet: String(
-          item?.content ||
-          "इस result की जानकारी उपलब्ध नहीं है।"
-        ),
-        url: String(item?.url || "")
-      }))
-      .filter(item => item.url);
 
-    return res.status(200).json({
-      query: q,
-      results,
-      source: "Tavily Web Search"
-    });
+  if (
+    items.length === 0
+  ) {
 
-  } catch (error) {
-    console.error("Tavily search error:", error);
+    results.innerHTML = `
 
-    // -----------------------------
-    // Wikipedia fallback
-    // -----------------------------
-    try {
-      const lang = /[\u0900-\u097F]/.test(q)
-        ? "hi"
-        : "en";
+      <div class="result-card">
 
-      const api = new URL(
-        `https://${lang}.wikipedia.org/w/api.php`
+        <h3>
+          🔎 कोई Web Result नहीं मिला
+        </h3>
+
+        <p>
+          दूसरे शब्दों में खोजकर देखें।
+        </p>
+
+      </div>
+
+    `;
+
+    return;
+
+  }
+
+
+  items.forEach(
+    item => {
+
+      results.appendChild(
+        makeResultCard(item)
       );
 
-      api.searchParams.set("action", "query");
-      api.searchParams.set("list", "search");
-      api.searchParams.set("srsearch", q);
-      api.searchParams.set("srlimit", "8");
-      api.searchParams.set("format", "json");
-      api.searchParams.set("origin", "*");
+    }
+  );
 
-      const wikiResponse = await fetch(
-        api.toString(),
+}
+
+
+// ==========================================
+// WEB SEARCH
+// ==========================================
+
+async function searchWeb(
+  query
+) {
+
+  if (!searchSection) {
+    return null;
+  }
+
+
+  searchSection.classList.remove(
+    "hidden"
+  );
+
+
+  if (results) {
+
+    results.innerHTML = `
+
+      <div class="result-card">
+
+        <h3>
+          🔎 Web Search
+        </h3>
+
+        <p>
+          Web results खोजे जा रहे हैं...
+        </p>
+
+      </div>
+
+    `;
+
+  }
+
+
+  try {
+
+    const url =
+      `${API_BASE}/api/search?q=` +
+      encodeURIComponent(query);
+
+
+    const response =
+      await fetchWithTimeout(
+
+        url,
+
         {
-          headers: {
-            "User-Agent": "SearchIndia/1.0"
+          method: "GET"
+        },
+
+        20000
+
+      );
+
+
+    const text =
+      await response.text();
+
+
+    let data;
+
+
+    try {
+
+      data =
+        JSON.parse(text);
+
+    } catch {
+
+      throw new Error(
+        "Search server का response सही नहीं है।"
+      );
+
+    }
+
+
+    if (!response.ok) {
+
+      throw new Error(
+
+        data?.error ||
+        `Search Error ${response.status}`
+
+      );
+
+    }
+
+
+    showResults(data);
+
+
+    return data;
+
+
+  } catch (error) {
+
+    console.error(
+      "WEB SEARCH ERROR:",
+      error
+    );
+
+
+    if (results) {
+
+      results.innerHTML = `
+
+        <div class="result-card">
+
+          <h3>
+            ⚠️ Web Search में समस्या
+          </h3>
+
+          <p>
+            अभी Web results लोड नहीं हो पाए।
+            AI answer उपलब्ध हो सकता है।
+          </p>
+
+        </div>
+
+      `;
+
+    }
+
+
+    return null;
+
+  }
+
+}
+
+
+// ==========================================
+// MAIN SEARCH
+// ==========================================
+
+async function performSearch(
+  query
+) {
+
+  query =
+    String(query || "")
+      .trim();
+
+
+  if (!query) {
+
+    setStatus(
+      "कृपया कुछ खोजें।",
+      "error"
+    );
+
+    if (searchInput) {
+
+      searchInput.focus();
+
+    }
+
+    return;
+
+  }
+
+
+  // IMPORTANT:
+  // Page reload नहीं होगा
+
+  setLoading(true);
+
+
+  setStatus(
+    `🔎 "${query}" खोजा जा रहा है...`
+  );
+
+
+  if (answerSection) {
+
+    answerSection.classList.remove(
+      "hidden"
+    );
+
+  }
+
+
+  if (searchSection) {
+
+    searchSection.classList.remove(
+      "hidden"
+    );
+
+  }
+
+
+  // AI और Web Search साथ-साथ
+
+  const aiPromise =
+    getAIAnswer(query);
+
+  const webPromise =
+    searchWeb(query);
+
+
+  await Promise.allSettled([
+    aiPromise,
+    webPromise
+  ]);
+
+
+  setStatus(
+    `✅ "${query}" के परिणाम मिल गए।`
+  );
+
+
+  setLoading(false);
+
+
+  // Results पर scroll
+
+  if (answerSection) {
+
+    answerSection.scrollIntoView({
+      behavior: "smooth",
+      block: "start"
+    });
+
+  }
+
+}
+
+
+// ==========================================
+// FORM SUBMIT
+// ==========================================
+
+if (searchForm) {
+
+  searchForm.addEventListener(
+    "submit",
+    function(event) {
+
+      // VERY IMPORTANT
+      // Browser reload रोकना
+
+      event.preventDefault();
+
+      event.stopPropagation();
+
+
+      const query =
+        searchInput
+          ? searchInput.value.trim()
+          : "";
+
+
+      performSearch(query);
+
+    }
+  );
+
+}
+
+
+// ==========================================
+// QUICK SEARCH
+// ==========================================
+
+document
+  .querySelectorAll(
+    "[data-query]"
+  )
+  .forEach(
+    button => {
+
+      button.addEventListener(
+        "click",
+        function(event) {
+
+          event.preventDefault();
+
+
+          const query =
+            this.getAttribute(
+              "data-query"
+            ) || "";
+
+
+          if (searchInput) {
+
+            searchInput.value =
+              query;
+
           }
+
+
+          performSearch(query);
+
         }
       );
 
-      const wikiText = await wikiResponse.text();
+    }
+  );
 
-      let wikiData;
 
-      try {
-        wikiData = JSON.parse(wikiText);
-      } catch {
-        return res.status(502).json({
-          error: "Web search temporarily unavailable"
-        });
+// ==========================================
+// ENTER KEY
+// ==========================================
+
+if (searchInput) {
+
+  searchInput.addEventListener(
+    "keydown",
+    function(event) {
+
+      if (
+        event.key === "Enter"
+      ) {
+
+        event.preventDefault();
+
+        if (searchForm) {
+
+          searchForm.requestSubmit();
+
+        }
+
       }
 
-      const items = Array.isArray(
-        wikiData?.query?.search
-      )
-        ? wikiData.query.search
-        : [];
-
-      const results = items.map(item => ({
-        title: item.title || "Untitled",
-
-        snippet: String(item.snippet || "")
-          .replace(/<[^>]*>/g, "")
-          .replace(/&quot;/g, '"')
-          .replace(/&#039;/g, "'")
-          .replace(/&amp;/g, "&"),
-
-        url:
-          `https://${lang}.wikipedia.org/wiki/` +
-          encodeURIComponent(
-            String(item.title || "")
-              .replace(/ /g, "_")
-          )
-      }));
-
-      return res.status(200).json({
-        query: q,
-        results,
-        source: "Wikipedia Fallback"
-      });
-
-    } catch (fallbackError) {
-      console.error(
-        "Fallback search error:",
-        fallbackError
-      );
-
-      return res.status(502).json({
-        error: "Web search temporarily unavailable"
-      });
     }
-  }
+  );
+
 }
+
+
+// ==========================================
+// INITIAL MESSAGE
+// ==========================================
+
+setStatus(
+  "भारत में कुछ भी खोजें..."
+);
+
+
+console.log(
+  "🇮🇳 Search India loaded successfully"
+);
