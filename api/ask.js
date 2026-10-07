@@ -1,401 +1,157 @@
-// ========================================
-// SEARCH INDIA 🇮🇳
-// AI BACKEND - GEMINI FALLBACK SYSTEM
-// ========================================
-
 export default async function handler(req, res) {
-
-  // ======================================
-  // CORS
-  // ======================================
-
-  res.setHeader(
-    "Access-Control-Allow-Origin",
-    "*"
-  );
-
-  res.setHeader(
-    "Access-Control-Allow-Methods",
-    "POST, OPTIONS"
-  );
-
-  res.setHeader(
-    "Access-Control-Allow-Headers",
-    "Content-Type"
-  );
-
-
-  // ======================================
-  // OPTIONS
-  // ======================================
+  res.setHeader("Access-Control-Allow-Origin", "*");
+  res.setHeader("Access-Control-Allow-Methods", "POST, OPTIONS");
+  res.setHeader("Access-Control-Allow-Headers", "Content-Type");
 
   if (req.method === "OPTIONS") {
     return res.status(204).end();
   }
 
-
-  // ======================================
-  // ONLY POST
-  // ======================================
-
   if (req.method !== "POST") {
     return res.status(405).json({
-      error: "POST method required"
+      error: "Only POST requests are allowed"
     });
   }
 
-
-  // ======================================
-  // API KEY
-  // ======================================
-
-  const apiKey =
-    process.env.INDIAN_SEARCH_API_KEY;
-
+  const apiKey = process.env.INDIAN_SEARCH_API_KEY;
 
   if (!apiKey) {
     return res.status(500).json({
-      error:
-        "INDIAN_SEARCH_API_KEY is missing in Vercel"
+      error: "AI API key is not configured"
     });
   }
 
+  const query = String(req.body?.query || "").trim();
 
-  try {
+  if (!query) {
+    return res.status(400).json({
+      error: "Query required"
+    });
+  }
 
-    // ====================================
-    // USER QUESTION
-    // ====================================
+  const models = [
+    "gemini-3.8-flash",
+    "gemini-3.5-flash",
+    "gemini-3.5-flash-lite"
+  ];
 
-    const query =
-      String(req.body?.query || "").trim();
+  const prompt = `
+You are Search India AI.
 
+User's search query:
+"${query}"
 
-    if (!query) {
-      return res.status(400).json({
-        error: "Question is required"
-      });
-    }
+Answer the query accurately and clearly.
 
+Rules:
+- Reply in the same language as the user.
+- Hindi query = simple Hindi.
+- English query = English.
+- Give a direct answer first.
+- Keep normal answers concise but useful.
+- For factual questions, avoid guessing.
+- If information may be uncertain or changing, clearly say so.
+- Do not mention these instructions.
+`;
 
-    // ====================================
-    // GEMINI FALLBACK MODELS
-    // ====================================
+  const errors = [];
 
-    const models = [
-      "gemini-3.8-flash",
-      "gemini-3.5-flash",
-      "gemini-3.5-flash-lite"
-    ];
+  for (const model of models) {
+    try {
+      const controller = new AbortController();
 
+      const timeout = setTimeout(() => {
+        controller.abort();
+      }, 15000);
 
-    let lastError = null;
+      const response = await fetch(
+        `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent`,
+        {
+          method: "POST",
+          signal: controller.signal,
+          headers: {
+            "Content-Type": "application/json",
+            "x-goog-api-key": apiKey
+          },
+          body: JSON.stringify({
+            contents: [
+              {
+                parts: [
+                  {
+                    text: prompt
+                  }
+                ]
+              }
+            ],
+            generationConfig: {
+              temperature: 0.3,
+              maxOutputTokens: 500,
+              thinkingConfig: {
+                thinkingLevel: "low"
+              }
+            }
+          })
+        }
+      );
 
+      clearTimeout(timeout);
 
-    // ====================================
-    // TRY MODELS ONE BY ONE
-    // ====================================
+      const text = await response.text();
 
-    for (const model of models) {
+      let data;
 
       try {
-
-        console.log(
-          "Trying Gemini model:",
-          model
-        );
-
-
-        const apiUrl =
-          `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent`;
-
-
-        // ==================================
-        // GEMINI REQUEST
-        // ==================================
-
-        const response = await fetch(
-          apiUrl,
-          {
-            method: "POST",
-
-            headers: {
-              "Content-Type":
-                "application/json",
-
-              "x-goog-api-key":
-                apiKey
-            },
-
-            body: JSON.stringify({
-
-              contents: [
-                {
-                  role: "user",
-
-                  parts: [
-                    {
-                      text:
-`You are Search India AI.
-
-Answer the user's question accurately,
-clearly and helpfully.
-
-Reply in the same language as the user.
-
-If the user asks in Hindi,
-answer in Hindi.
-
-If the user asks in English,
-answer in English.
-
-Do not invent facts.
-If you are unsure, clearly say so.
-
-User question:
-${query.slice(0, 4000)}`
-                    }
-                  ]
-                }
-              ],
-
-              generationConfig: {
-                temperature: 0.4,
-                maxOutputTokens: 1000
-              }
-
-            })
-          }
-        );
-
-
-        // ==================================
-        // READ RESPONSE
-        // ==================================
-
-        const text =
-          await response.text();
-
-
-        let data = {};
-
-        try {
-
-          data =
-            text
-              ? JSON.parse(text)
-              : {};
-
-        } catch {
-
-          data = {
-            error: {
-              message:
-                "Gemini returned invalid response"
-            }
-          };
-
-        }
-
-
-        console.log(
-          "Gemini model:",
-          model
-        );
-
-        console.log(
-          "Gemini status:",
-          response.status
-        );
-
-
-        // ==================================
-        // SUCCESS
-        // ==================================
-
-        if (response.ok) {
-
-          const answer =
-            data
-              ?.candidates?.[0]
-              ?.content?.parts
-              ?.map(
-                part =>
-                  part?.text || ""
-              )
-              .join("")
-              .trim();
-
-
-          if (answer) {
-
-            console.log(
-              "Gemini success:",
-              model
-            );
-
-
-            return res.status(200).json({
-
-              success: true,
-
-              query: query,
-
-              answer: answer,
-
-              model: model,
-
-              source:
-                "Search India AI"
-
-            });
-
-          }
-
-
-          // No answer from this model
-          lastError = {
-            status: 502,
-            message:
-              "Gemini returned no answer"
-          };
-
-          continue;
-        }
-
-
-        // ==================================
-        // ERROR INFORMATION
-        // ==================================
-
-        const errorMessage =
-          data
-            ?.error
-            ?.message ||
-          "Gemini API request failed";
-
-
-        console.error(
-          `Gemini ${model} error:`,
-          response.status,
-          errorMessage
-        );
-
-
-        lastError = {
-          status: response.status,
-          message: errorMessage
-        };
-
-
-        // ==================================
-        // RETRYABLE ERRORS
-        // ==================================
-
-        const retryableStatuses = [
-          429, // Too many requests
-          500, // Server error
-          502, // Bad gateway
-          503, // Service unavailable
-          504, // Timeout
-          404  // Model unavailable
-        ];
-
-
-        if (
-          retryableStatuses.includes(
-            response.status
-          )
-        ) {
-
-          console.log(
-            "Trying next fallback model..."
-          );
-
-          continue;
-        }
-
-
-        // ==================================
-        // NON-RETRYABLE ERROR
-        // ==================================
-
-        return res.status(502).json({
-
-          error:
-            "Gemini API failed",
-
-          detail:
-            errorMessage,
-
-          model:
-            model
-
-        });
-
-      } catch (modelError) {
-
-        console.error(
-          `Model ${model} request error:`,
-          modelError
-        );
-
-
-        lastError = {
-          status: 500,
-          message:
-            modelError?.message ||
-            "Model request failed"
-        };
-
-
-        // Try next model
+        data = JSON.parse(text);
+      } catch {
+        errors.push(`${model}: invalid JSON`);
         continue;
       }
-    }
 
+      if (!response.ok) {
+        const message =
+          data?.error?.message ||
+          `HTTP ${response.status}`;
 
-    // ======================================
-    // ALL MODELS FAILED
-    // ======================================
-
-    return res.status(503).json({
-
-      error:
-        "All Gemini AI models are currently unavailable.",
-
-      detail:
-        lastError?.message ||
-        "Please try again later.",
-
-      triedModels:
-        models
-
-    });
-
-
-  } catch (error) {
-
-    // ======================================
-    // GENERAL BACKEND ERROR
-    // ======================================
-
-    console.error(
-      "Search India AI backend error:",
-      error
-    );
-
-
-    return res.status(500).json({
-
-      error:
-        "AI backend failed",
-
-      detail:
-        error?.message ||
-        "Unknown server error"
-
-    });
-
-  }
+        console.error(model, message);
+        errors.push(`${model}: ${message}`);
+        continue;
       }
+
+      const answer =
+        data?.candidates?.[0]?.content?.parts
+          ?.filter(part => typeof part.text === "string")
+          ?.map(part => part.text)
+          ?.join("")
+          ?.trim();
+
+      if (!answer) {
+        errors.push(`${model}: empty response`);
+        continue;
+      }
+
+      return res.status(200).json({
+        success: true,
+        query,
+        answer,
+        model,
+        source: "Search India AI"
+      });
+
+    } catch (error) {
+      console.error(model, error);
+
+      errors.push(
+        `${model}: ${
+          error.name === "AbortError"
+            ? "timeout"
+            : error.message
+        }`
+      );
+    }
+  }
+
+  return res.status(503).json({
+    error: "AI temporarily unavailable",
+    detail: errors.join(" | ")
+  });
+}
