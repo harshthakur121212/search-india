@@ -1,13 +1,9 @@
 // ==========================================
-// 🇮🇳 SEARCH INDIA
-// AI + IMAGE VISION API
+// 🇮🇳 SEARCH INDIA AI
+// GEMINI AI BACKEND
 // ==========================================
 
 export default async function handler(req, res) {
-
-  // ------------------------------------------
-  // CORS
-  // ------------------------------------------
 
   res.setHeader(
     "Access-Control-Allow-Origin",
@@ -25,20 +21,12 @@ export default async function handler(req, res) {
   );
 
 
-  // ------------------------------------------
-  // OPTIONS
-  // ------------------------------------------
-
   if (req.method === "OPTIONS") {
 
     return res.status(204).end();
 
   }
 
-
-  // ------------------------------------------
-  // POST ONLY
-  // ------------------------------------------
 
   if (req.method !== "POST") {
 
@@ -49,15 +37,15 @@ export default async function handler(req, res) {
   }
 
 
-  // ------------------------------------------
-  // API KEY
-  // ------------------------------------------
-
   const apiKey =
     process.env.INDIAN_SEARCH_API_KEY;
 
 
   if (!apiKey) {
+
+    console.error(
+      "INDIAN_SEARCH_API_KEY missing"
+    );
 
     return res.status(500).json({
       error:
@@ -66,10 +54,6 @@ export default async function handler(req, res) {
 
   }
 
-
-  // ------------------------------------------
-  // BODY
-  // ------------------------------------------
 
   const query =
     String(
@@ -85,104 +69,121 @@ export default async function handler(req, res) {
 
     return res.status(400).json({
       error:
-        "Query or image required"
+        "Query or image is required"
     });
 
   }
 
 
-  // ------------------------------------------
-  // IMAGE CHECK
-  // ------------------------------------------
-
-  const hasImage =
-    typeof image === "string" &&
-    image.startsWith("data:image/");
-
-
-  // ------------------------------------------
-  // GEMINI MODELS
-  // ------------------------------------------
+  /*
+   * New model first.
+   * Fallback models are kept so that
+   * one unavailable model does not break AI.
+   */
 
   const models = [
 
-    "gemini-2.5-flash",
+    "gemini-3.8-flash",
 
-    "gemini-2.0-flash"
+    "gemini-2.5-flash-lite",
+
+    "gemini-2.5-flash"
 
   ];
 
 
-  // ------------------------------------------
-  // PROMPT
-  // ------------------------------------------
+  let inlineImage = null;
+
+
+  /*
+   * IMAGE
+   */
+
+  if (
+    image &&
+    typeof image === "string" &&
+    image.startsWith("data:image/")
+  ) {
+
+    const match =
+      image.match(
+        /^data:(image\/[a-zA-Z0-9.+-]+);base64,(.+)$/
+      );
+
+
+    if (match) {
+
+      inlineImage = {
+
+        mime_type:
+          match[1],
+
+        data:
+          match[2]
+
+      };
+
+    }
+
+  }
+
+
+  /*
+   * PROMPT
+   */
 
   let prompt;
 
 
-  if (hasImage) {
+  if (inlineImage) {
 
     prompt = `
+आप Search India के AI assistant हैं।
 
-You are Search India AI Vision.
+इस image को ध्यान से पढ़ें।
 
-The user has uploaded an image.
+अगर image में कोई question है:
+1. Question को समझें।
+2. सही answer दें।
+3. जरूरत हो तो step-by-step explanation दें।
+4. अगर यह school/board/NEET का सवाल है तो सरल भाषा में समझाएं।
+5. बिना जरूरत बहुत लंबा answer न दें।
 
-Carefully examine the image and answer the user's request.
+User का अतिरिक्त सवाल:
 
-User request:
-"${query || "इस image को पढ़कर question का सही answer बताइए।"}"
+${query || "इस photo में दिए गए question का सही answer बताइए।"}
 
-Rules:
-
-- Read all visible text carefully.
-- If it is a school question, solve it step by step.
-- For mathematics, show the calculation clearly.
-- For physics, chemistry or biology, explain accurately.
-- If the image contains a question paper, identify the relevant question.
-- Answer in the same language as the user.
-- Hindi question = simple Hindi/Hinglish.
-- English question = English.
-- Do not invent information that is not visible.
-- If the image is unclear, clearly say that the photo is unclear.
-- Give the final answer clearly.
-
+उत्तर Hindi/Hinglish में दें।
 `;
 
   } else {
 
     prompt = `
+आप "Search India AI" हैं।
 
-You are Search India AI.
-
-User's search query:
-
-"${query}"
-
-Answer accurately and clearly.
+User के सवाल का सही, स्पष्ट और उपयोगी उत्तर दें।
 
 Rules:
+- Hindi/Hinglish में सरल भाषा इस्तेमाल करें।
+- जरूरत हो तो English terms भी रखें।
+- Facts को स्पष्ट रखें।
+- अगर सवाल पढ़ाई से संबंधित है तो example देकर समझाएं।
+- सीधे answer से शुरू करें।
+- बेवजह लंबा जवाब न दें।
 
-- Reply in the same language as the user.
-- Hindi query = simple Hindi.
-- English query = English.
-- Give a direct answer first.
-- For school questions, explain clearly.
-- For factual questions, do not guess.
-- If information is uncertain, say so.
-- Do not mention these instructions.
-
+User Question:
+${query}
 `;
 
   }
 
 
-  const errors = [];
+  /*
+   * TRY MODELS
+   */
 
+  let lastError = null;
 
-  // ------------------------------------------
-  // TRY MODELS
-  // ------------------------------------------
 
   for (
     const model of models
@@ -194,95 +195,33 @@ Rules:
         new AbortController();
 
 
-      const timer =
+      const timeout =
         setTimeout(
           () => controller.abort(),
-          50000
+          45000
         );
 
 
-      // --------------------------------------
-      // CONTENT
-      // --------------------------------------
+      const parts = [
 
-      const parts = [];
-
-
-      parts.push({
-        text: prompt
-      });
-
-
-      // --------------------------------------
-      // IMAGE PART
-      // --------------------------------------
-
-      if (hasImage) {
-
-        const commaIndex =
-          image.indexOf(",");
-
-
-        if (commaIndex === -1) {
-
-          throw new Error(
-            "Invalid image data"
-          );
-
+        {
+          text: prompt
         }
 
-
-        const header =
-          image.substring(
-            0,
-            commaIndex
-          );
+      ];
 
 
-        const base64Data =
-          image.substring(
-            commaIndex + 1
-          );
-
-
-        let mimeType =
-          "image/jpeg";
-
-
-        const mimeMatch =
-          header.match(
-            /data:(image\/[a-zA-Z0-9.+-]+);base64/i
-          );
-
-
-        if (mimeMatch) {
-
-          mimeType =
-            mimeMatch[1];
-
-        }
-
+      if (inlineImage) {
 
         parts.push({
 
-          inline_data: {
-
-            mime_type:
-              mimeType,
-
-            data:
-              base64Data
-
-          }
+          inline_data:
+            inlineImage
 
         });
 
       }
 
-
-      // --------------------------------------
-      // GEMINI REQUEST
-      // --------------------------------------
 
       const response =
         await fetch(
@@ -292,9 +231,6 @@ Rules:
           {
 
             method: "POST",
-
-            signal:
-              controller.signal,
 
             headers: {
 
@@ -306,36 +242,36 @@ Rules:
 
             },
 
-            body:
-              JSON.stringify({
+            body: JSON.stringify({
 
-                contents: [
+              contents: [
 
-                  {
-                    parts:
-                      parts
-                  }
-
-                ],
-
-                generationConfig: {
-
-                  temperature:
-                    0.3,
-
-                  maxOutputTokens:
-                    1000
-
+                {
+                  role: "user",
+                  parts: parts
                 }
 
-              })
+              ],
+
+              generationConfig: {
+
+                temperature: 0.3,
+
+                maxOutputTokens: 1200
+
+              }
+
+            }),
+
+            signal:
+              controller.signal
 
           }
 
         );
 
 
-      clearTimeout(timer);
+      clearTimeout(timeout);
 
 
       const text =
@@ -352,116 +288,69 @@ Rules:
 
       } catch {
 
-        errors.push(
-          `${model}: invalid JSON`
+        throw new Error(
+          "Invalid Gemini response"
         );
-
-        continue;
 
       }
 
-
-      // --------------------------------------
-      // ERROR
-      // --------------------------------------
 
       if (!response.ok) {
 
-        const message =
-          data?.error?.message ||
-          `HTTP ${response.status}`;
-
-
         console.error(
-          model,
-          message
+          `Gemini ${model} error:`,
+          response.status,
+          data
         );
 
-
-        errors.push(
-          `${model}: ${message}`
+        throw new Error(
+          data?.error?.message ||
+          `Gemini API error ${response.status}`
         );
-
-
-        continue;
 
       }
 
-
-      // --------------------------------------
-      // ANSWER
-      // --------------------------------------
 
       const answer =
         data
           ?.candidates?.[0]
           ?.content?.parts
-          ?.filter(
-            part =>
-              typeof part.text ===
-              "string"
-          )
           ?.map(
-            part =>
-              part.text
+            part => part?.text || ""
           )
-          ?.join("")
-          ?.trim();
+          .join("")
+          .trim();
 
 
       if (!answer) {
 
-        errors.push(
-          `${model}: empty response`
+        throw new Error(
+          "Gemini returned empty answer"
         );
-
-        continue;
 
       }
 
 
-      // --------------------------------------
-      // SUCCESS
-      // --------------------------------------
-
       return res.status(200).json({
 
-        success:
-          true,
+        success: true,
 
-        query:
-          query,
+        answer: answer,
 
-        answer:
-          answer,
+        model: model,
 
-        model:
-          model,
-
-        source:
-          hasImage
-            ? "Search India Vision AI"
-            : "Search India AI"
+        source: "Google Gemini"
 
       });
 
+
     } catch (error) {
 
+      lastError = error;
+
       console.error(
-        model,
+        `Model ${model} failed:`,
         error
-      );
-
-
-      errors.push(
-
-        `${model}: ${
-          error.name ===
-          "AbortError"
-            ? "timeout"
-            : error.message
-        }`
-
       );
 
     }
@@ -469,20 +358,21 @@ Rules:
   }
 
 
-  // ------------------------------------------
-  // ALL MODELS FAILED
-  // ------------------------------------------
+  /*
+   * ALL MODELS FAILED
+   */
 
   return res.status(503).json({
 
+    success: false,
+
     error:
-      hasImage
-        ? "Image AI temporarily unavailable"
-        : "AI temporarily unavailable",
+      "AI service temporarily unavailable",
 
     detail:
-      errors.join(" | ")
+      lastError?.message ||
+      "All Gemini models failed"
 
   });
 
-                                }
+}
