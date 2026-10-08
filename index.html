@@ -2,507 +2,306 @@
 <html lang="hi">
 <head>
   <meta charset="UTF-8">
-
-  <meta
-    name="viewport"
-    content="width=device-width, initial-scale=1.0"
-  >
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
   <title>Search India 🇮🇳</title>
-
-  <meta
-    name="description"
-    content="Search India - India's Search Engine with AI Answers"
-  >
+  <meta name="description" content="Search India - AI Answers and Web Search">
 
   <link rel="stylesheet" href="style.css">
-
-  <!-- JS पहले से load होने से रोकने के लिए defer -->
   <script src="app.js" defer></script>
 </head>
 
 <body>
 
-  <!-- HEADER -->
-  <header class="header">
-
-    <div class="logo">
-
-      <span class="logo-icon">🇮🇳</span>
-
-      <div>
-        <h1>Search India</h1>
-        <p>भारत का Search Engine</p>
-      </div>
-
+<header class="header">
+  <div class="logo">
+    <span class="logo-icon">🇮🇳</span>
+    <div>
+      <h1>Search India</h1>
+      <p>भारत का Search Engine</p>
     </div>
+  </div>
+</header>
 
-  </header>
+<main>
 
+<section class="hero">
 
-  <main>
+  <div class="hero-badge">🇮🇳 Made for India</div>
 
-    <!-- HERO -->
-    <section class="hero">
+  <h2>भारत में कुछ भी खोजें</h2>
 
-      <div class="hero-badge">
-        🇮🇳 Made for India
-      </div>
+  <p class="hero-text">
+    Web Search • AI Answers • Voice • Camera
+  </p>
 
-      <h2>
-        भारत में कुछ भी खोजें
-      </h2>
+  <!-- SEARCH -->
+  <form id="searchForm" class="search-box">
 
-      <p class="hero-text">
-        Web Search • AI Answers • Knowledge
-      </p>
+    <button
+      id="micBtn"
+      class="search-tool"
+      type="button"
+      title="Voice Search"
+      aria-label="Voice Search"
+    >
+      🎤
+    </button>
 
-
-      <!-- SEARCH FORM -->
-      <form
-        id="searchForm"
-        class="search-box"
-        novalidate
-      >
-
-        <span class="search-icon">
-          🔎
-        </span>
-
-        <input
-          id="searchInput"
-          type="search"
-          placeholder="भारत में कुछ खोजें..."
-          autocomplete="off"
-        >
-
-        <button
-          id="searchBtn"
-          type="submit"
-        >
-          खोजें
-        </button>
-
-      </form>
-
-
-      <!-- STATUS -->
-      <div
-        id="searchStatus"
-        class="status"
-      >
-        भारत में कुछ भी खोजें...
-      </div>
-
-
-      <!-- QUICK SEARCH -->
-      <div class="quick-search">
-
-        <button
-          type="button"
-          data-query="भारत के प्रधान मंत्री"
-        >
-          🇮🇳 भारत के प्रधान मंत्री
-        </button>
-
-        <button
-          type="button"
-          data-query="भारत का इतिहास"
-        >
-          📚 भारत का इतिहास
-        </button>
-
-        <button
-          type="button"
-          data-query="उत्तर प्रदेश"
-        >
-          🏠 उत्तर प्रदेश
-        </button>
-
-        <button
-          type="button"
-          data-query="भारत की राजधानी"
-        >
-          🏛️ भारत की राजधानी
-        </button>
-
-      </div>
-
-    </section>
-
-
-    <!-- AI ANSWER -->
-    <section
-      id="answerSection"
-      class="section hidden"
+    <input
+      id="searchInput"
+      type="search"
+      placeholder="भारत में कुछ खोजें..."
+      autocomplete="off"
     >
 
-      <div class="section-title">
+    <!-- CAMERA/GALLERY -->
+    <button
+      id="cameraBtn"
+      class="search-tool"
+      type="button"
+      title="Question की photo लें"
+      aria-label="Camera Search"
+    >
+      📷
+    </button>
 
-        <span>✨</span>
+    <button
+      id="searchBtn"
+      type="submit"
+    >
+      🔎
+    </button>
 
-        <h2>
-          Search India AI
-        </h2>
+  </form>
 
-      </div>
+  <!-- Hidden image picker -->
+  <input
+    id="imageInput"
+    type="file"
+    accept="image/*"
+    capture="environment"
+    hidden
+  >
 
+  <!-- IMAGE PREVIEW -->
+  <div id="imagePreviewBox" class="image-preview-box hidden">
 
-      <div
-        id="answerBox"
-        class="answer-box"
-      >
-
-        <div class="ai-label">
-          🤖 AI उत्तर
-        </div>
-
-        <div
-          id="directAnswer"
-          class="answer-text"
-        ></div>
-
-        <div
-          id="answerSource"
-          class="answer-source"
-        ></div>
-
-      </div>
-
-    </section>
-
-
-    <!-- WEB SEARCH -->
-    <section
-      id="searchSection"
-      class="section hidden"
+    <img
+      id="imagePreview"
+      alt="Selected question"
     >
 
-      <div class="section-title">
+    <button
+      id="removeImageBtn"
+      type="button"
+    >
+      ✕ हटाएँ
+    </button>
 
-        <span>🔎</span>
+  </div>
 
-        <h2>
-          Web Search Results
-        </h2>
+  <div id="searchStatus" class="status">
+    भारत में कुछ भी खोजें...
+  </div>
 
-      </div>
+  <div class="quick-search">
 
+    <button type="button" data-query="भारत के प्रधान मंत्री">
+      🇮🇳 भारत के प्रधान मंत्री
+    </button>
 
-      <div
-        id="results"
-        class="results"
-      ></div>
+    <button type="button" data-query="भारत का इतिहास">
+      📚 भारत का इतिहास
+    </button>
 
-    </section>
+    <button type="button" data-query="उत्तर प्रदेश">
+      🏠 उत्तर प्रदेश
+    </button>
 
+    <button type="button" data-query="भारत की राजधानी">
+      🏛️ भारत की राजधानी
+    </button>
 
-    <!-- NEWS -->
-    <section class="section">
+  </div>
 
-      <div class="section-title">
+</section>
 
-        <span>📰</span>
 
-        <h2>
-          भारत की खबरें
-        </h2>
+<!-- AI ANSWER -->
+<section id="answerSection" class="section hidden">
 
-      </div>
+  <div class="section-title">
+    <span>✨</span>
+    <h2>Search India AI</h2>
+  </div>
 
+  <div id="answerBox" class="answer-box">
 
-      <div
-        id="newsGrid"
-        class="news-grid"
-      >
-
-        <article class="news-card">
-
-          <div class="news-image">
-            🇮🇳
-          </div>
-
-          <h3>
-            भारत से जुड़ी जानकारी
-          </h3>
-
-          <p>
-            Search India पर भारत से जुड़ी जानकारी खोजें।
-          </p>
-
-        </article>
-
-
-        <article class="news-card">
-
-          <div class="news-image">
-            📰
-          </div>
-
-          <h3>
-            महत्वपूर्ण जानकारी
-          </h3>
-
-          <p>
-            अपनी पसंद का विषय Search India में खोजें।
-          </p>
-
-        </article>
-
-
-        <article class="news-card">
-
-          <div class="news-image">
-            🌏
-          </div>
-
-          <h3>
-            भारत और दुनिया
-          </h3>
-
-          <p>
-            Knowledge और web information एक जगह।
-          </p>
-
-        </article>
-
-      </div>
-
-    </section>
-
-
-    <!-- EXPLORE -->
-    <section class="section">
-
-      <div class="section-title">
-
-        <span>📚</span>
-
-        <h2>
-          Explore India
-        </h2>
-
-      </div>
-
-
-      <div class="explore-grid">
-
-        <button
-          class="explore-card"
-          type="button"
-          data-query="भारत का इतिहास"
-        >
-
-          <span>🏛️</span>
-
-          <strong>
-            भारत का इतिहास
-          </strong>
-
-          <small>
-            History
-          </small>
-
-        </button>
-
-
-        <button
-          class="explore-card"
-          type="button"
-          data-query="भारत के राज्य"
-        >
-
-          <span>🗺️</span>
-
-          <strong>
-            भारत के राज्य
-          </strong>
-
-          <small>
-            States of India
-          </small>
-
-        </button>
-
-
-        <button
-          class="explore-card"
-          type="button"
-          data-query="भारत की अर्थव्यवस्था"
-        >
-
-          <span>💰</span>
-
-          <strong>
-            अर्थव्यवस्था
-          </strong>
-
-          <small>
-            Economy
-          </small>
-
-        </button>
-
-
-        <button
-          class="explore-card"
-          type="button"
-          data-query="भारत की शिक्षा"
-        >
-
-          <span>🎓</span>
-
-          <strong>
-            शिक्षा
-          </strong>
-
-          <small>
-            Education
-          </small>
-
-        </button>
-
-
-        <button
-          class="explore-card"
-          type="button"
-          data-query="भारत का विज्ञान"
-        >
-
-          <span>🔬</span>
-
-          <strong>
-            विज्ञान
-          </strong>
-
-          <small>
-            Science
-          </small>
-
-        </button>
-
-
-        <button
-          class="explore-card"
-          type="button"
-          data-query="भारत के प्रसिद्ध स्थान"
-        >
-
-          <span>🏞️</span>
-
-          <strong>
-            प्रसिद्ध स्थान
-          </strong>
-
-          <small>
-            Places
-          </small>
-
-        </button>
-
-      </div>
-
-    </section>
-
-
-    <!-- FEATURES -->
-    <section class="section">
-
-      <div class="section-title">
-
-        <span>⚡</span>
-
-        <h2>
-          Search India Features
-        </h2>
-
-      </div>
-
-
-      <div class="feature-grid">
-
-        <div class="feature-card">
-
-          <span>🔎</span>
-
-          <h3>
-            Web Search
-          </h3>
-
-          <p>
-            Web की जानकारी जल्दी खोजें।
-          </p>
-
-        </div>
-
-
-        <div class="feature-card">
-
-          <span>🤖</span>
-
-          <h3>
-            AI Answers
-          </h3>
-
-          <p>
-            AI से आसान भाषा में उत्तर पाएँ।
-          </p>
-
-        </div>
-
-
-        <div class="feature-card">
-
-          <span>🇮🇳</span>
-
-          <h3>
-            Hindi Support
-          </h3>
-
-          <p>
-            हिंदी और English दोनों में खोजें।
-          </p>
-
-        </div>
-
-
-        <div class="feature-card">
-
-          <span>📱</span>
-
-          <h3>
-            Mobile Friendly
-          </h3>
-
-          <p>
-            मोबाइल पर आसान अनुभव।
-          </p>
-
-        </div>
-
-      </div>
-
-    </section>
-
-  </main>
-
-
-  <!-- FOOTER -->
-  <footer class="footer">
-
-    <div class="footer-logo">
-      🇮🇳 <strong>Search India</strong>
+    <div class="ai-label">
+      🤖 AI उत्तर
     </div>
 
-    <p>
-      India's Search Engine
-    </p>
+    <div id="directAnswer" class="answer-text"></div>
 
-    <p class="copyright">
-      © 2026 Search India. All rights reserved.
-    </p>
+    <div id="answerSource" class="answer-source"></div>
 
-  </footer>
+  </div>
+
+</section>
+
+
+<!-- WEB RESULTS -->
+<section id="searchSection" class="section hidden">
+
+  <div class="section-title">
+    <span>🔎</span>
+    <h2>Web Search Results</h2>
+  </div>
+
+  <div id="results" class="results"></div>
+
+</section>
+
+
+<!-- NEWS -->
+<section class="section">
+
+  <div class="section-title">
+    <span>📰</span>
+    <h2>भारत की खबरें</h2>
+  </div>
+
+  <div id="newsGrid" class="news-grid">
+
+    <article class="news-card">
+      <div class="news-image">🇮🇳</div>
+      <h3>भारत से जुड़ी जानकारी</h3>
+      <p>Search India पर जानकारी खोजें।</p>
+    </article>
+
+    <article class="news-card">
+      <div class="news-image">📰</div>
+      <h3>महत्वपूर्ण जानकारी</h3>
+      <p>अपनी पसंद का विषय खोजें।</p>
+    </article>
+
+    <article class="news-card">
+      <div class="news-image">🌏</div>
+      <h3>भारत और दुनिया</h3>
+      <p>Knowledge और web information एक जगह।</p>
+    </article>
+
+  </div>
+
+</section>
+
+
+<!-- EXPLORE -->
+<section class="section">
+
+  <div class="section-title">
+    <span>📚</span>
+    <h2>Explore India</h2>
+  </div>
+
+  <div class="explore-grid">
+
+    <button class="explore-card" type="button" data-query="भारत का इतिहास">
+      <span>🏛️</span>
+      <strong>भारत का इतिहास</strong>
+      <small>History</small>
+    </button>
+
+    <button class="explore-card" type="button" data-query="भारत के राज्य">
+      <span>🗺️</span>
+      <strong>भारत के राज्य</strong>
+      <small>States</small>
+    </button>
+
+    <button class="explore-card" type="button" data-query="भारत की अर्थव्यवस्था">
+      <span>💰</span>
+      <strong>अर्थव्यवस्था</strong>
+      <small>Economy</small>
+    </button>
+
+    <button class="explore-card" type="button" data-query="भारत की शिक्षा">
+      <span>🎓</span>
+      <strong>शिक्षा</strong>
+      <small>Education</small>
+    </button>
+
+    <button class="explore-card" type="button" data-query="भारत का विज्ञान">
+      <span>🔬</span>
+      <strong>विज्ञान</strong>
+      <small>Science</small>
+    </button>
+
+    <button class="explore-card" type="button" data-query="भारत के प्रसिद्ध स्थान">
+      <span>🏞️</span>
+      <strong>प्रसिद्ध स्थान</strong>
+      <small>Places</small>
+    </button>
+
+  </div>
+
+</section>
+
+
+<!-- FEATURES -->
+<section class="section">
+
+  <div class="section-title">
+    <span>⚡</span>
+    <h2>Search India Features</h2>
+  </div>
+
+  <div class="feature-grid">
+
+    <div class="feature-card">
+      <span>🔎</span>
+      <h3>Web Search</h3>
+      <p>Web की जानकारी जल्दी खोजें।</p>
+    </div>
+
+    <div class="feature-card">
+      <span>🤖</span>
+      <h3>AI Answers</h3>
+      <p>AI से आसान भाषा में उत्तर पाएँ।</p>
+    </div>
+
+    <div class="feature-card">
+      <span>🎤</span>
+      <h3>Voice Search</h3>
+      <p>बोलकर खोजें।</p>
+    </div>
+
+    <div class="feature-card">
+      <span>📷</span>
+      <h3>Camera Search</h3>
+      <p>Question की photo लेकर answer पाएँ।</p>
+    </div>
+
+  </div>
+
+</section>
+
+</main>
+
+
+<footer class="footer">
+
+  <div class="footer-logo">
+    🇮🇳 <strong>Search India</strong>
+  </div>
+
+  <p>India's Search Engine</p>
+
+  <p class="copyright">
+    © 2026 Search India. All rights reserved.
+  </p>
+
+</footer>
 
 </body>
-        </html>
+  </html>
