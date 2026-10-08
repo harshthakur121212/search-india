@@ -1,54 +1,19 @@
-// ==========================================
-// 🇮🇳 SEARCH INDIA
-// APP.JS
-// Voice + Camera + AI + Web Search
-// ==========================================
-
 const API_BASE = window.location.origin;
 
-
-// ==========================================
-// ELEMENTS
-// ==========================================
-
-const searchForm =
-  document.getElementById("searchForm");
-
-const searchInput =
-  document.getElementById("searchInput");
-
-const searchBtn =
-  document.getElementById("searchBtn");
-
-const micBtn =
-  document.getElementById("micBtn");
-
-const cameraBtn =
-  document.getElementById("cameraBtn");
-
-const imageInput =
-  document.getElementById("imageInput");
-
-const imagePreview =
-  document.getElementById("imagePreview");
+const searchForm = document.getElementById("searchForm");
+const searchInput = document.getElementById("searchInput");
+const micBtn = document.getElementById("micBtn");
+const cameraBtn = document.getElementById("cameraBtn");
+const imageInput = document.getElementById("imageInput");
 
 const imagePreviewBox =
   document.getElementById("imagePreviewBox");
 
+const imagePreview =
+  document.getElementById("imagePreview");
+
 const removeImageBtn =
   document.getElementById("removeImageBtn");
-
-const searchStatus =
-  document.getElementById("searchStatus");
-
-const searchSection =
-  document.getElementById("searchSection");
-
-const results =
-  document.getElementById("results");
-
-const answerSection =
-  document.getElementById("answerSection");
 
 const directAnswer =
   document.getElementById("directAnswer");
@@ -56,158 +21,292 @@ const directAnswer =
 const answerSource =
   document.getElementById("answerSource");
 
+const results =
+  document.getElementById("results");
 
-// ==========================================
-// SELECTED IMAGE
-// ==========================================
+const searchStatus =
+  document.getElementById("searchStatus");
+
 
 let selectedImage = null;
 
 
-// ==========================================
-// TIMEOUT FETCH
-// ==========================================
-
-async function fetchWithTimeout(
-  url,
-  options = {},
-  timeout = 35000
-) {
-
-  const controller =
-    new AbortController();
-
-  const timer =
-    setTimeout(
-      () => controller.abort(),
-      timeout
-    );
-
-  try {
-
-    return await fetch(
-      url,
-      {
-        ...options,
-        signal: controller.signal
-      }
-    );
-
-  } finally {
-
-    clearTimeout(timer);
-
-  }
-}
-
-
-// ==========================================
-// HTML ESCAPE
-// ==========================================
+/* ==========================================
+   HELPERS
+========================================== */
 
 function escapeHTML(value) {
 
-  return String(value ?? "")
-    .replace(/&/g, "&amp;")
-    .replace(/</g, "&lt;")
-    .replace(/>/g, "&gt;")
-    .replace(/"/g, "&quot;")
-    .replace(/'/g, "&#039;");
-
+  return String(value || "")
+    .replaceAll("&", "&amp;")
+    .replaceAll("<", "&lt;")
+    .replaceAll(">", "&gt;")
+    .replaceAll('"', "&quot;")
+    .replaceAll("'", "&#039;");
 }
 
 
-// ==========================================
-// STATUS
-// ==========================================
+function showStatus(message) {
 
-function setStatus(
-  message,
-  type = ""
-) {
+  searchStatus.textContent = message;
+  searchStatus.classList.remove("hidden");
+}
 
-  if (!searchStatus) return;
 
-  searchStatus.textContent =
-    message;
+function hideStatus() {
 
-  searchStatus.className =
-    "status";
+  searchStatus.classList.add("hidden");
+}
 
-  if (type) {
-    searchStatus.classList.add(type);
+
+/* ==========================================
+   IMAGE COMPRESSION
+========================================== */
+
+function compressImage(file) {
+
+  return new Promise((resolve, reject) => {
+
+    const reader = new FileReader();
+
+    reader.onload = function () {
+
+      const img = new Image();
+
+      img.onload = function () {
+
+        const maxSize = 1600;
+
+        let width = img.width;
+        let height = img.height;
+
+        if (width > maxSize || height > maxSize) {
+
+          if (width > height) {
+
+            height =
+              Math.round(
+                height * maxSize / width
+              );
+
+            width = maxSize;
+
+          } else {
+
+            width =
+              Math.round(
+                width * maxSize / height
+              );
+
+            height = maxSize;
+          }
+        }
+
+        const canvas =
+          document.createElement("canvas");
+
+        canvas.width = width;
+        canvas.height = height;
+
+        const ctx =
+          canvas.getContext("2d");
+
+        ctx.drawImage(
+          img,
+          0,
+          0,
+          width,
+          height
+        );
+
+        resolve(
+          canvas.toDataURL(
+            "image/jpeg",
+            0.78
+          )
+        );
+      };
+
+      img.onerror = reject;
+
+      img.src = reader.result;
+    };
+
+    reader.onerror = reject;
+
+    reader.readAsDataURL(file);
+  });
+}
+
+
+/* ==========================================
+   CAMERA
+========================================== */
+
+cameraBtn.addEventListener("click", () => {
+
+  imageInput.click();
+
+});
+
+
+imageInput.addEventListener("change", async () => {
+
+  const file = imageInput.files?.[0];
+
+  if (!file) return;
+
+  try {
+
+    showStatus("📷 Photo तैयार हो रही है...");
+
+    selectedImage =
+      await compressImage(file);
+
+    imagePreview.src = selectedImage;
+
+    imagePreviewBox.classList.remove(
+      "hidden"
+    );
+
+    hideStatus();
+
+    searchInput.value =
+      "इस photo में दिए गए सवाल का सही answer बताइए";
+
+  } catch (error) {
+
+    console.error(error);
+
+    showStatus(
+      "❌ Photo पढ़ने में समस्या आई।"
+    );
   }
-
-}
-
-
-// ==========================================
-// LOADING
-// ==========================================
-
-function setLoading(
-  loading
-) {
-
-  if (!searchBtn) return;
-
-  searchBtn.disabled =
-    loading;
-
-  searchBtn.textContent =
-    loading
-      ? "⏳"
-      : "🔎";
-
-}
+});
 
 
-// ==========================================
-// AI LOADING
-// ==========================================
+removeImageBtn.addEventListener(
+  "click",
+  () => {
 
-function showAILoading(
-  message = "🤖 AI जवाब तैयार कर रहा है..."
-) {
+    selectedImage = null;
 
-  answerSection?.classList.remove(
-    "hidden"
+    imageInput.value = "";
+
+    imagePreview.src = "";
+
+    imagePreviewBox.classList.add(
+      "hidden"
+    );
+
+  }
+);
+
+
+/* ==========================================
+   VOICE SEARCH
+========================================== */
+
+const SpeechRecognition =
+  window.SpeechRecognition ||
+  window.webkitSpeechRecognition;
+
+
+if (SpeechRecognition) {
+
+  const recognition =
+    new SpeechRecognition();
+
+  recognition.lang = "hi-IN";
+
+  recognition.continuous = false;
+
+  recognition.interimResults = false;
+
+
+  micBtn.addEventListener(
+    "click",
+    () => {
+
+      try {
+
+        showStatus(
+          "🎤 बोलिए... मैं सुन रहा हूँ"
+        );
+
+        recognition.start();
+
+      } catch (error) {
+
+        console.log(error);
+
+      }
+    }
   );
 
-  if (directAnswer) {
 
-    directAnswer.innerHTML =
-      escapeHTML(message);
+  recognition.onresult = function(event) {
 
-  }
+    const text =
+      event.results[0][0].transcript;
 
-  if (answerSource) {
+    searchInput.value = text;
 
-    answerSource.textContent =
-      "Search India AI";
+    hideStatus();
 
-  }
+    searchForm.requestSubmit();
+  };
 
+
+  recognition.onerror = function() {
+
+    showStatus(
+      "❌ Voice Search शुरू नहीं हो पाया। Microphone permission check करें।"
+    );
+  };
+
+
+  recognition.onend = function() {
+
+    setTimeout(() => {
+
+      if (
+        searchStatus.textContent.includes(
+          "बोलिए"
+        )
+      ) {
+        hideStatus();
+      }
+
+    }, 1000);
+  };
+
+} else {
+
+  micBtn.addEventListener(
+    "click",
+    () => {
+
+      showStatus(
+        "इस browser में Voice Search supported नहीं है। Chrome इस्तेमाल करें।"
+      );
+
+    }
+  );
 }
 
 
-// ==========================================
-// AI TEXT SEARCH
-// ==========================================
+/* ==========================================
+   AI SEARCH
+========================================== */
 
-async function getAIAnswer(
-  query
-) {
-
-  showAILoading();
+async function askAI(query, image = null) {
 
   try {
 
     const response =
-      await fetchWithTimeout(
-
+      await fetch(
         `${API_BASE}/api/ask`,
-
         {
           method: "POST",
 
@@ -217,68 +316,24 @@ async function getAIAnswer(
           },
 
           body: JSON.stringify({
-            query: query
+            query: query,
+            image: image
           })
-        },
-
-        35000
+        }
       );
 
 
-    const text =
-      await response.text();
-
-    let data;
-
-    try {
-
-      data =
-        JSON.parse(text);
-
-    } catch {
-
-      throw new Error(
-        "AI server response invalid"
-      );
-
-    }
+    const data =
+      await response.json();
 
 
     if (!response.ok) {
 
       throw new Error(
         data?.error ||
-        data?.detail ||
-        `AI Error ${response.status}`
+        "AI request failed"
       );
-
     }
-
-
-    const answer =
-      String(
-        data?.answer || ""
-      ).trim();
-
-
-    if (!answer) {
-
-      throw new Error(
-        "AI ने कोई answer नहीं दिया"
-      );
-
-    }
-
-
-    directAnswer.innerHTML =
-      escapeHTML(answer)
-        .replace(/\n/g, "<br>");
-
-
-    answerSource.textContent =
-      data?.model
-        ? `Search India AI • ${data.model}`
-        : "Search India AI";
 
 
     return data;
@@ -290,248 +345,72 @@ async function getAIAnswer(
       error
     );
 
-    directAnswer.innerHTML = `
-      ⚠️ AI अभी जवाब नहीं दे पा रहा है।
-      <br><br>
-      कृपया थोड़ी देर बाद फिर कोशिश करें।
-    `;
-
-    answerSource.textContent =
-      "Search India AI";
-
-    return null;
-
+    throw error;
   }
-
 }
 
 
-// ==========================================
-// IMAGE → AI
-// ==========================================
+/* ==========================================
+   WEB SEARCH
+========================================== */
 
-async function getAIImageAnswer(
-  imageData,
-  query = ""
-) {
+async function webSearch(query) {
 
-  answerSection?.classList.remove(
-    "hidden"
-  );
-
-  directAnswer.innerHTML = `
-    📷 Photo को AI पढ़ रहा है...
-    <br><br>
-    कृपया थोड़ा इंतजार करें।
-  `;
-
-  answerSource.textContent =
-    "Search India Vision AI";
-
-
-  try {
-
-    const response =
-      await fetchWithTimeout(
-
-        `${API_BASE}/api/ask`,
-
-        {
-          method: "POST",
-
-          headers: {
-            "Content-Type":
-              "application/json"
-          },
-
-          body: JSON.stringify({
-
-            query:
-              query ||
-              "इस photo में दिए गए question को पढ़कर उसका सही answer समझाइए।",
-
-            image:
-              imageData
-
-          })
-
-        },
-
-        60000
-      );
-
-
-    const text =
-      await response.text();
-
-    let data;
-
-
-    try {
-
-      data =
-        JSON.parse(text);
-
-    } catch {
-
-      throw new Error(
-        "AI image response invalid"
-      );
-
-    }
-
-
-    if (!response.ok) {
-
-      throw new Error(
-        data?.error ||
-        data?.detail ||
-        `Image AI Error ${response.status}`
-      );
-
-    }
-
-
-    const answer =
-      String(
-        data?.answer || ""
-      ).trim();
-
-
-    if (!answer) {
-
-      throw new Error(
-        "Image AI ने answer नहीं दिया"
-      );
-
-    }
-
-
-    directAnswer.innerHTML =
-      escapeHTML(answer)
-        .replace(/\n/g, "<br>");
-
-
-    answerSource.textContent =
-      data?.model
-        ? `Search India Vision AI • ${data.model}`
-        : "Search India Vision AI";
-
-
-    return data;
-
-
-  } catch (error) {
-
-    console.error(
-      "IMAGE AI ERROR:",
-      error
+  const response =
+    await fetch(
+      `${API_BASE}/api/search?q=${encodeURIComponent(query)}`
     );
 
 
-    directAnswer.innerHTML = `
-      ⚠️ Photo को पढ़ने में समस्या हुई।
-      <br><br>
-      कृपया साफ photo लेकर फिर कोशिश करें।
-    `;
-
-    answerSource.textContent =
-      "Search India Vision AI";
+  const data =
+    await response.json();
 
 
-    return null;
+  if (!response.ok) {
 
+    throw new Error(
+      data?.error ||
+      "Web search failed"
+    );
   }
 
+
+  return data;
 }
 
 
-// ==========================================
-// WEB RESULT CARD
-// ==========================================
+/* ==========================================
+   SHOW AI
+========================================== */
 
-function makeResultCard(
-  item
-) {
-
-  const card =
-    document.createElement(
-      "article"
-    );
-
-  card.className =
-    "result-card";
-
-
-  const title =
-    escapeHTML(
-      item?.title ||
-      "Untitled"
-    );
-
-
-  const snippet =
-    escapeHTML(
-      item?.snippet ||
-      item?.content ||
-      "जानकारी उपलब्ध नहीं है।"
-    );
-
-
-  const url =
-    String(
-      item?.url || ""
-    );
-
-
-  let linkHTML = "";
-
+function showAI(data) {
 
   if (
-    url &&
-    /^https?:\/\//i.test(url)
+    data &&
+    data.answer
   ) {
 
-    linkHTML = `
+    directAnswer.textContent =
+      data.answer;
 
-      <a
-        href="${escapeHTML(url)}"
-        target="_blank"
-        rel="noopener noreferrer"
-      >
-        परिणाम खोलें →
-      </a>
+    answerSource.textContent =
+      `Model: ${data.model || "Search India AI"}`;
 
-    `;
+  } else {
 
+    directAnswer.textContent =
+      "AI को answer नहीं मिला।";
+
+    answerSource.textContent = "";
   }
-
-
-  card.innerHTML = `
-
-    <h3>${title}</h3>
-
-    <p>${snippet}</p>
-
-    ${linkHTML}
-
-  `;
-
-
-  return card;
-
 }
 
 
-// ==========================================
-// SHOW RESULTS
-// ==========================================
+/* ==========================================
+   SHOW WEB RESULTS
+========================================== */
 
-function showResults(
-  data
-) {
-
-  if (!results) return;
+function showResults(data) {
 
   results.innerHTML = "";
 
@@ -542,593 +421,215 @@ function showResults(
       : [];
 
 
-  if (!items.length) {
+  if (items.length === 0) {
 
-    results.innerHTML = `
-
-      <div class="result-card">
-
-        <h3>
-          🔎 कोई Web Result नहीं मिला
-        </h3>
-
-        <p>
-          दूसरे शब्दों में खोजकर देखें।
-        </p>
-
-      </div>
-
-    `;
+    results.innerHTML =
+      `<div class="empty">
+        🔎 इस search के लिए कोई web result नहीं मिला।
+      </div>`;
 
     return;
-
   }
 
 
-  items.forEach(
-    item => {
+  items.forEach(item => {
 
-      results.appendChild(
-        makeResultCard(item)
-      );
+    const card =
+      document.createElement("div");
 
-    }
-  );
+    card.className =
+      "result-card";
 
+
+    card.innerHTML = `
+
+      <h3>
+        ${escapeHTML(item.title)}
+      </h3>
+
+      <div class="result-url">
+        ${escapeHTML(item.url)}
+      </div>
+
+      <p>
+        ${escapeHTML(item.snippet)}
+      </p>
+
+      <a
+        class="result-link"
+        href="${escapeHTML(item.url)}"
+        target="_blank"
+        rel="noopener noreferrer">
+        परिणाम खोलें →
+      </a>
+
+    `;
+
+
+    results.appendChild(card);
+
+  });
 }
 
 
-// ==========================================
-// WEB SEARCH
-// ==========================================
+/* ==========================================
+   MAIN SEARCH
+========================================== */
 
-async function searchWeb(
-  query
-) {
+searchForm.addEventListener(
+  "submit",
+  async function(event) {
 
-  searchSection?.classList.remove(
-    "hidden"
-  );
+    event.preventDefault();
 
 
-  results.innerHTML = `
-
-    <div class="result-card">
-
-      <h3>
-        🌐 Web Search
-      </h3>
-
-      <p>
-        Web results खोजे जा रहे हैं...
-      </p>
-
-    </div>
-
-  `;
+    const query =
+      searchInput.value.trim();
 
 
-  try {
+    if (!query && !selectedImage) {
 
-    const response =
-      await fetchWithTimeout(
-
-        `${API_BASE}/api/search?q=` +
-        encodeURIComponent(query),
-
-        {
-          method: "GET"
-        },
-
-        20000
+      showStatus(
+        "पहले कुछ search करें।"
       );
 
+      return;
+    }
 
-    const text =
-      await response.text();
 
-    let data;
+    showStatus(
+      "🔎 Search India खोज रहा है..."
+    );
+
+
+    directAnswer.textContent =
+      "🤖 AI सोच रहा है...";
+
+    answerSource.textContent = "";
+
+    results.innerHTML =
+      `<div class="empty">
+        🌐 Web results खोजे जा रहे हैं...
+      </div>`;
 
 
     try {
 
-      data =
-        JSON.parse(text);
+      const aiPromise =
+        askAI(
+          query ||
+          "इस photo में दिए गए question को पढ़कर उसका answer बताइए।",
+          selectedImage
+        );
 
-    } catch {
 
-      throw new Error(
-        "Search response invalid"
-      );
+      const webPromise =
+        query
+          ? webSearch(query)
+          : Promise.resolve({
+              results: []
+            });
 
-    }
 
+      const [
+        aiResult,
+        webResult
+      ] =
+        await Promise.allSettled([
+          aiPromise,
+          webPromise
+        ]);
 
-    if (!response.ok) {
 
-      throw new Error(
-        data?.error ||
-        `Search Error ${response.status}`
-      );
+      /* AI */
 
-    }
+      if (
+        aiResult.status === "fulfilled"
+      ) {
 
+        showAI(
+          aiResult.value
+        );
 
-    showResults(data);
+      } else {
 
-    return data;
+        console.error(
+          aiResult.reason
+        );
 
+        directAnswer.textContent =
+          "⚠️ AI answer नहीं मिल पाया।";
 
-  } catch (error) {
-
-    console.error(
-      "WEB SEARCH ERROR:",
-      error
-    );
-
-
-    results.innerHTML = `
-
-      <div class="result-card">
-
-        <h3>
-          ⚠️ Web Search में समस्या
-        </h3>
-
-        <p>
-          Web results अभी उपलब्ध नहीं हैं।
-        </p>
-
-      </div>
-
-    `;
-
-
-    return null;
-
-  }
-
-}
-
-
-// ==========================================
-// NORMAL SEARCH
-// ==========================================
-
-async function performSearch(
-  query
-) {
-
-  query =
-    String(query || "").trim();
-
-
-  if (!query) {
-
-    setStatus(
-      "कृपया कुछ खोजें।",
-      "error"
-    );
-
-    searchInput?.focus();
-
-    return;
-
-  }
-
-
-  setLoading(true);
-
-
-  setStatus(
-    `🔎 "${query}" खोजा जा रहा है...`
-  );
-
-
-  answerSection?.classList.remove(
-    "hidden"
-  );
-
-  searchSection?.classList.remove(
-    "hidden"
-  );
-
-
-  const aiPromise =
-    getAIAnswer(query);
-
-  const webPromise =
-    searchWeb(query);
-
-
-  await Promise.allSettled([
-    aiPromise,
-    webPromise
-  ]);
-
-
-  setStatus(
-    `✅ "${query}" के परिणाम मिल गए।`
-  );
-
-
-  setLoading(false);
-
-}
-
-
-// ==========================================
-// IMAGE SEARCH
-// ==========================================
-
-async function performImageSearch(
-  file
-) {
-
-  if (!file) return;
-
-
-  setLoading(true);
-
-
-  setStatus(
-    "📷 Photo को पढ़ा जा रहा है..."
-  );
-
-
-  try {
-
-    const reader =
-      new FileReader();
-
-
-    const imageData =
-      await new Promise(
-        (resolve, reject) => {
-
-          reader.onload =
-            () => resolve(
-              reader.result
-            );
-
-          reader.onerror =
-            reject;
-
-          reader.readAsDataURL(file);
-
-        }
-      );
-
-
-    selectedImage =
-      imageData;
-
-
-    imagePreview.src =
-      imageData;
-
-
-    imagePreviewBox.classList.remove(
-      "hidden"
-    );
-
-
-    await getAIImageAnswer(
-      imageData,
-      searchInput?.value?.trim() || ""
-    );
-
-
-    setStatus(
-      "✅ Photo का AI answer तैयार है।"
-    );
-
-
-  } catch (error) {
-
-    console.error(
-      "IMAGE ERROR:",
-      error
-    );
-
-
-    setStatus(
-      "⚠️ Photo process नहीं हो पाई।",
-      "error"
-    );
-
-  }
-
-
-  setLoading(false);
-
-}
-
-
-// ==========================================
-// SEARCH FORM
-// ==========================================
-
-searchForm?.addEventListener(
-  "submit",
-  function(event) {
-
-    event.preventDefault();
-    event.stopPropagation();
-
-
-    const query =
-      searchInput?.value?.trim() || "";
-
-
-    performSearch(query);
-
-  }
-);
-
-
-// ==========================================
-// CAMERA BUTTON
-// ==========================================
-
-cameraBtn?.addEventListener(
-  "click",
-  function() {
-
-    imageInput?.click();
-
-  }
-);
-
-
-// ==========================================
-// IMAGE PICKED
-// ==========================================
-
-imageInput?.addEventListener(
-  "change",
-  function() {
-
-    const file =
-      this.files?.[0];
-
-
-    if (file) {
-
-      performImageSearch(file);
-
-    }
-
-  }
-);
-
-
-// ==========================================
-// REMOVE IMAGE
-// ==========================================
-
-removeImageBtn?.addEventListener(
-  "click",
-  function() {
-
-    selectedImage =
-      null;
-
-    imageInput.value =
-      "";
-
-    imagePreview.src =
-      "";
-
-    imagePreviewBox.classList.add(
-      "hidden"
-    );
-
-    setStatus(
-      "भारत में कुछ भी खोजें..."
-    );
-
-  }
-);
-
-
-// ==========================================
-// MICROPHONE / VOICE SEARCH
-// ==========================================
-
-let recognition = null;
-
-
-const SpeechRecognition =
-  window.SpeechRecognition ||
-  window.webkitSpeechRecognition;
-
-
-if (SpeechRecognition) {
-
-  recognition =
-    new SpeechRecognition();
-
-
-  recognition.lang =
-    "hi-IN";
-
-
-  recognition.continuous =
-    false;
-
-
-  recognition.interimResults =
-    false;
-
-
-  recognition.onstart =
-    function() {
-
-      micBtn.textContent =
-        "🔴";
-
-      setStatus(
-        "🎤 सुन रहा हूँ..."
-      );
-
-    };
-
-
-  recognition.onresult =
-    function(event) {
-
-      const transcript =
-        event.results?.[0]?.[0]?.transcript || "";
-
-
-      searchInput.value =
-        transcript;
-
-
-      setStatus(
-        `🎤 "${transcript}" सुना गया।`
-      );
-
-
-      performSearch(
-        transcript
-      );
-
-    };
-
-
-  recognition.onerror =
-    function(event) {
-
-      console.error(
-        "Voice error:",
-        event
-      );
-
-
-      setStatus(
-        "🎤 Mic काम नहीं कर पाया।",
-        "error"
-      );
-
-    };
-
-
-  recognition.onend =
-    function() {
-
-      micBtn.textContent =
-        "🎤";
-
-    };
-
-
-  micBtn?.addEventListener(
-    "click",
-    function() {
-
-      try {
-
-        recognition.start();
-
-      } catch {
-
-        // Already running
-
+        answerSource.textContent =
+          "API/model response में समस्या है।";
       }
 
-    }
-  );
+
+      /* WEB */
+
+      if (
+        webResult.status === "fulfilled"
+      ) {
+
+        showResults(
+          webResult.value
+        );
+
+      } else {
+
+        console.error(
+          webResult.reason
+        );
+
+        results.innerHTML =
+          `<div class="empty">
+            ⚠️ Web Search में समस्या आई।
+          </div>`;
+      }
 
 
-} else {
+      hideStatus();
 
-  micBtn?.addEventListener(
-    "click",
-    function() {
+    } catch (error) {
 
-      setStatus(
-        "यह browser Voice Search support नहीं करता।",
-        "error"
+      console.error(error);
+
+      showStatus(
+        "❌ Search में समस्या आई।"
       );
 
     }
-  );
 
-}
+  }
+);
 
 
-// ==========================================
-// QUICK SEARCH
-// ==========================================
+/* ==========================================
+   QUICK SEARCH
+========================================== */
 
 document
   .querySelectorAll(
-    "[data-query]"
+    ".quick-search button"
   )
-  .forEach(
-    button => {
+  .forEach(button => {
 
-      button.addEventListener(
-        "click",
-        function(event) {
+    button.addEventListener(
+      "click",
+      () => {
 
-          event.preventDefault();
+        searchInput.value =
+          button.dataset.query;
 
+        selectedImage = null;
 
-          const query =
-            this.getAttribute(
-              "data-query"
-            ) || "";
+        imagePreviewBox.classList.add(
+          "hidden"
+        );
 
+        searchForm.requestSubmit();
 
-          searchInput.value =
-            query;
+      }
+    );
 
-
-          performSearch(
-            query
-          );
-
-        }
-      );
-
-    }
-  );
-
-
-// ==========================================
-// ENTER KEY
-// ==========================================
-
-searchInput?.addEventListener(
-  "keydown",
-  function(event) {
-
-    if (
-      event.key === "Enter"
-    ) {
-
-      event.preventDefault();
-
-      searchForm?.requestSubmit();
-
-    }
-
-  }
-);
-
-
-// ==========================================
-// START
-// ==========================================
-
-setStatus(
-  "भारत में कुछ भी खोजें..."
-);
-
-
-console.log(
-  "🇮🇳 Search India loaded"
-);
+  });
