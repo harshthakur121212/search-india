@@ -1,5 +1,9 @@
 const API_BASE = window.location.origin;
+const homeBtn = document.getElementById("homeBtn");
+const historyList = document.getElementById("historyList");
+const clearHistoryBtn = document.getElementById("clearHistoryBtn");
 
+const HISTORY_KEY = "searchIndiaHistory";
 const searchForm = document.getElementById("searchForm");
 const searchInput = document.getElementById("searchInput");
 const micBtn = document.getElementById("micBtn");
@@ -626,7 +630,189 @@ document
         imagePreviewBox.classList.add(
           "hidden"
         );
+function getSearchHistory() {
+  try {
+    return JSON.parse(
+      localStorage.getItem(HISTORY_KEY) || "[]"
+    );
+  } catch {
+    return [];
+  }
+}
 
+function saveSearchHistory(query) {
+  query = String(query || "").trim();
+
+  if (!query) return;
+
+  let history = getSearchHistory();
+
+  // Same search को दोबारा ऊपर लाएं
+  history = history.filter(item => item !== query);
+
+  history.unshift(query);
+
+  // Maximum 20 searches
+  history = history.slice(0, 20);
+
+  localStorage.setItem(
+    HISTORY_KEY,
+    JSON.stringify(history)
+  );
+
+  renderSearchHistory();
+}
+
+function deleteSearchHistory(index) {
+  let history = getSearchHistory();
+
+  history.splice(index, 1);
+
+  localStorage.setItem(
+    HISTORY_KEY,
+    JSON.stringify(history)
+  );
+
+  renderSearchHistory();
+}
+
+function renderSearchHistory() {
+  if (!historyList) return;
+
+  const history = getSearchHistory();
+
+  if (history.length === 0) {
+    historyList.innerHTML = `
+      <div class="empty-history">
+        🕘 अभी कोई search history नहीं है।
+      </div>
+    `;
+
+    if (clearHistoryBtn) {
+      clearHistoryBtn.style.display = "none";
+    }
+
+    return;
+  }
+
+  if (clearHistoryBtn) {
+    clearHistoryBtn.style.display = "block";
+  }
+
+  historyList.innerHTML = history
+    .map((item, index) => `
+      <div class="history-item">
+
+        <button
+          class="history-search"
+          type="button"
+          data-history-index="${index}"
+        >
+          🔎 ${escapeHtml(item)}
+        </button>
+
+        <button
+          class="history-delete"
+          type="button"
+          data-delete-index="${index}"
+          aria-label="Delete"
+        >
+          🗑️
+        </button>
+
+      </div>
+    `)
+    .join("");
+
+  document
+    .querySelectorAll("[data-history-index]")
+    .forEach(button => {
+      button.addEventListener("click", () => {
+        const index = Number(
+          button.dataset.historyIndex
+        );
+
+        const selected = getSearchHistory()[index];
+
+        if (!selected) return;
+
+        searchInput.value = selected;
+
+        if (typeof performSearch === "function") {
+          performSearch(selected);
+        } else {
+          searchForm.requestSubmit();
+        }
+      });
+    });
+
+  document
+    .querySelectorAll("[data-delete-index]")
+    .forEach(button => {
+      button.addEventListener("click", () => {
+        const index = Number(
+          button.dataset.deleteIndex
+        );
+
+        deleteSearchHistory(index);
+      });
+    });
+}
+
+if (clearHistoryBtn) {
+  clearHistoryBtn.addEventListener("click", () => {
+    localStorage.removeItem(HISTORY_KEY);
+    renderSearchHistory();
+  });
+}
+
+if (homeBtn) {
+  homeBtn.addEventListener("click", () => {
+
+    // Search box साफ
+    if (searchInput) {
+      searchInput.value = "";
+    }
+
+    // Image साफ
+    if (typeof selectedImage !== "undefined") {
+      selectedImage = null;
+    }
+
+    // Results साफ
+    if (results) {
+      results.innerHTML = "";
+    }
+
+    // AI answer साफ
+    if (directAnswer) {
+      directAnswer.textContent =
+        "यहाँ आपके सवाल का जवाब दिखाई देगा।";
+    }
+
+    if (answerSource) {
+      answerSource.textContent = "";
+    }
+
+    // Image preview साफ
+    const imagePreview =
+      document.getElementById("imagePreview");
+
+    if (imagePreview) {
+      imagePreview.innerHTML = "";
+      imagePreview.style.display = "none";
+    }
+
+    // Home पर वापस
+    window.scrollTo({
+      top: 0,
+      behavior: "smooth"
+    });
+  });
+}
+
+// Page खुलते ही history दिखाएं
+renderSearchHistory();
         searchForm.requestSubmit();
 
       }
