@@ -6,15 +6,11 @@ const API_BASE = window.location.origin;
 
 const searchInput = document.getElementById("searchInput");
 const searchForm = document.getElementById("searchForm");
-const searchSection = document.getElementById("searchSection");
 const searchStatus = document.getElementById("searchStatus");
 const results = document.getElementById("results");
 
-const answerBox = document.getElementById("answerBox");
 const directAnswer = document.getElementById("directAnswer");
 const answerSource = document.getElementById("answerSource");
-
-const newsGrid = document.getElementById("newsGrid");
 
 const micBtn = document.getElementById("micBtn");
 const cameraBtn = document.getElementById("cameraBtn");
@@ -22,7 +18,8 @@ const imageInput = document.getElementById("imageInput");
 
 const homeBtn = document.getElementById("homeBtn");
 const historyList = document.getElementById("historyList");
-const clearHistoryBtn = document.getElementById("clearHistoryBtn");
+const clearHistoryBtn =
+  document.getElementById("clearHistoryBtn");
 
 const HISTORY_KEY = "searchIndiaHistory";
 
@@ -31,7 +28,7 @@ let isSearching = false;
 
 
 // ===============================
-// HTML ESCAPE
+// ESCAPE HTML
 // ===============================
 
 function escapeHtml(value) {
@@ -66,14 +63,13 @@ function saveSearchHistory(query) {
 
   let history = getSearchHistory();
 
-  // Same search ko dobara upar lao
   history = history.filter(
-    item => item.toLowerCase() !== query.toLowerCase()
+    item =>
+      item.toLowerCase() !== query.toLowerCase()
   );
 
   history.unshift(query);
 
-  // Maximum 20 searches
   history = history.slice(0, 20);
 
   localStorage.setItem(
@@ -105,6 +101,7 @@ function renderSearchHistory() {
   const history = getSearchHistory();
 
   if (history.length === 0) {
+
     historyList.innerHTML = `
       <div class="empty-history">
         🕘 अभी कोई search history नहीं है।
@@ -138,7 +135,6 @@ function renderSearchHistory() {
           class="history-delete"
           type="button"
           data-delete-index="${index}"
-          aria-label="Delete search"
         >
           🗑️
         </button>
@@ -147,51 +143,62 @@ function renderSearchHistory() {
     `)
     .join("");
 
-  // History search buttons
   document
     .querySelectorAll("[data-history-index]")
     .forEach(button => {
 
-      button.addEventListener("click", () => {
+      button.addEventListener(
+        "click",
+        () => {
 
-        const index = Number(
-          button.dataset.historyIndex
-        );
+          const index =
+            Number(
+              button.dataset.historyIndex
+            );
 
-        const selected =
-          getSearchHistory()[index];
+          const selected =
+            getSearchHistory()[index];
 
-        if (!selected) return;
+          if (!selected) return;
 
-        searchInput.value = selected;
+          searchInput.value = selected;
 
-        performSearch(selected);
-      });
+          performSearch(selected);
+
+        }
+      );
 
     });
 
 
-  // Delete buttons
   document
     .querySelectorAll("[data-delete-index]")
     .forEach(button => {
 
-      button.addEventListener("click", event => {
+      button.addEventListener(
+        "click",
+        event => {
 
-        event.stopPropagation();
+          event.stopPropagation();
 
-        const index = Number(
-          button.dataset.deleteIndex
-        );
+          const index =
+            Number(
+              button.dataset.deleteIndex
+            );
 
-        deleteSearchHistory(index);
-      });
+          deleteSearchHistory(index);
+
+        }
+      );
 
     });
 }
 
 
-// Clear all history
+// ===============================
+// CLEAR HISTORY
+// ===============================
+
 if (clearHistoryBtn) {
 
   clearHistoryBtn.addEventListener(
@@ -220,24 +227,20 @@ if (homeBtn) {
     "click",
     () => {
 
-      // Search box clear
       if (searchInput) {
         searchInput.value = "";
       }
 
-      // Image clear
       selectedImage = null;
 
       if (imageInput) {
         imageInput.value = "";
       }
 
-      // Results clear
       if (results) {
         results.innerHTML = "";
       }
 
-      // AI answer reset
       if (directAnswer) {
         directAnswer.textContent =
           "यहाँ आपके सवाल का जवाब दिखाई देगा।";
@@ -247,21 +250,20 @@ if (homeBtn) {
         answerSource.textContent = "";
       }
 
-      // Status reset
       if (searchStatus) {
         searchStatus.textContent = "";
       }
 
-      // Image preview remove
       const imagePreview =
-        document.getElementById("imagePreview");
+        document.getElementById(
+          "imagePreview"
+        );
 
       if (imagePreview) {
         imagePreview.innerHTML = "";
         imagePreview.style.display = "none";
       }
 
-      // Search section top
       window.scrollTo({
         top: 0,
         behavior: "smooth"
@@ -279,82 +281,101 @@ if (homeBtn) {
 
 function compressImage(file) {
 
-  return new Promise((resolve, reject) => {
+  return new Promise(
+    (resolve, reject) => {
 
-    const reader = new FileReader();
+      const reader =
+        new FileReader();
 
-    reader.onload = event => {
+      reader.onload =
+        event => {
 
-      const img = new Image();
+          const img =
+            new Image();
 
-      img.onload = () => {
+          img.onload =
+            () => {
 
-        const maxSize = 1600;
+              const maxSize = 1600;
 
-        let width = img.width;
-        let height = img.height;
+              let width = img.width;
+              let height = img.height;
 
-        if (width > maxSize || height > maxSize) {
+              if (
+                width > maxSize ||
+                height > maxSize
+              ) {
 
-          if (width > height) {
-            height =
-              Math.round(
-                height * maxSize / width
+                if (width > height) {
+
+                  height =
+                    Math.round(
+                      height *
+                      maxSize /
+                      width
+                    );
+
+                  width = maxSize;
+
+                } else {
+
+                  width =
+                    Math.round(
+                      width *
+                      maxSize /
+                      height
+                    );
+
+                  height = maxSize;
+
+                }
+
+              }
+
+              const canvas =
+                document.createElement(
+                  "canvas"
+                );
+
+              canvas.width = width;
+              canvas.height = height;
+
+              const ctx =
+                canvas.getContext(
+                  "2d"
+                );
+
+              ctx.drawImage(
+                img,
+                0,
+                0,
+                width,
+                height
               );
 
-            width = maxSize;
+              const compressed =
+                canvas.toDataURL(
+                  "image/jpeg",
+                  0.72
+                );
 
-          } else {
+              resolve(compressed);
 
-            width =
-              Math.round(
-                width * maxSize / height
-              );
+            };
 
-            height = maxSize;
+          img.onerror = reject;
 
-          }
+          img.src =
+            event.target.result;
 
-        }
+        };
 
-        const canvas =
-          document.createElement("canvas");
+      reader.onerror = reject;
 
-        canvas.width = width;
-        canvas.height = height;
+      reader.readAsDataURL(file);
 
-        const ctx =
-          canvas.getContext("2d");
-
-        ctx.drawImage(
-          img,
-          0,
-          0,
-          width,
-          height
-        );
-
-        const compressed =
-          canvas.toDataURL(
-            "image/jpeg",
-            0.78
-          );
-
-        resolve(compressed);
-
-      };
-
-      img.onerror = reject;
-
-      img.src = event.target.result;
-
-    };
-
-    reader.onerror = reject;
-
-    reader.readAsDataURL(file);
-
-  });
+    }
+  );
 
 }
 
@@ -366,20 +387,27 @@ function compressImage(file) {
 function showImagePreview(dataUrl) {
 
   let preview =
-    document.getElementById("imagePreview");
+    document.getElementById(
+      "imagePreview"
+    );
 
   if (!preview) {
 
     preview =
-      document.createElement("div");
+      document.createElement(
+        "div"
+      );
 
-    preview.id = "imagePreview";
+    preview.id =
+      "imagePreview";
 
     if (searchForm) {
+
       searchForm.insertAdjacentElement(
         "afterend",
         preview
       );
+
     }
 
   }
@@ -387,41 +415,22 @@ function showImagePreview(dataUrl) {
   preview.style.display = "block";
 
   preview.innerHTML = `
-    <div style="
-      margin-top:10px;
-      padding:10px;
-      border-radius:14px;
-      background:#f5f5f5;
-      display:flex;
-      align-items:center;
-      gap:10px;
-    ">
+    <div class="selected-image-box">
 
       <img
         src="${dataUrl}"
         alt="Selected image"
-        style="
-          width:70px;
-          height:70px;
-          object-fit:cover;
-          border-radius:10px;
-        "
+        class="selected-image"
       >
 
-      <span style="flex:1;">
+      <span class="selected-image-text">
         📷 Image selected
       </span>
 
       <button
         id="removeImageBtn"
         type="button"
-        style="
-          border:none;
-          background:#ffe5e5;
-          padding:8px 10px;
-          border-radius:10px;
-          cursor:pointer;
-        "
+        class="remove-image-btn"
       >
         ✕
       </button>
@@ -436,18 +445,20 @@ function showImagePreview(dataUrl) {
 
   if (removeBtn) {
 
-    removeBtn.onclick = () => {
+    removeBtn.onclick =
+      () => {
 
-      selectedImage = null;
+        selectedImage = null;
 
-      if (imageInput) {
-        imageInput.value = "";
-      }
+        if (imageInput) {
+          imageInput.value = "";
+        }
 
-      preview.innerHTML = "";
-      preview.style.display = "none";
+        preview.innerHTML = "";
+        preview.style.display =
+          "none";
 
-    };
+      };
 
   }
 
@@ -485,31 +496,43 @@ if (imageInput) {
 
       if (!file) return;
 
-      if (!file.type.startsWith("image/")) {
+      if (
+        !file.type.startsWith(
+          "image/"
+        )
+      ) {
         return;
       }
 
       try {
 
         searchStatus.textContent =
-          "📷 Image तैयार हो रही है...";
+          "📷 फोटो तैयार हो रही है...";
 
         selectedImage =
-          await compressImage(file);
+          await compressImage(
+            file
+          );
 
         showImagePreview(
           selectedImage
         );
 
         searchStatus.textContent =
-          "📷 Image तैयार है। अब Search दबाएँ।";
+          "🕵️ जग्गा जासूस फोटो पढ़ रहा है...";
+
+        // फोटो select होते ही AI search
+        await performSearch("");
 
       } catch (error) {
 
-        console.error(error);
+        console.error(
+          "Image error:",
+          error
+        );
 
         searchStatus.textContent =
-          "⚠️ Image load नहीं हो पाई।";
+          "⚠️ फोटो पढ़ी नहीं जा सकी।";
 
       }
 
@@ -523,7 +546,10 @@ if (imageInput) {
 // AI SEARCH
 // ===============================
 
-async function askAI(query, image = null) {
+async function askAI(
+  query,
+  image = null
+) {
 
   try {
 
@@ -549,18 +575,20 @@ async function askAI(query, image = null) {
       await response.json();
 
     if (!response.ok) {
+
       throw new Error(
         data?.error ||
         "AI request failed"
       );
+
     }
 
-    if (
-      !data?.answer
-    ) {
+    if (!data?.answer) {
+
       throw new Error(
         "AI answer empty"
       );
+
     }
 
     if (directAnswer) {
@@ -598,6 +626,7 @@ async function askAI(query, image = null) {
     }
 
     return null;
+
   }
 
 }
@@ -613,7 +642,9 @@ async function webSearch(query) {
 
     const response =
       await fetch(
-        `${API_BASE}/api/search?q=${encodeURIComponent(query)}`
+        `${API_BASE}/api/search?q=${encodeURIComponent(
+          query
+        )}`
       );
 
     const data =
@@ -654,7 +685,9 @@ async function webSearch(query) {
 function makeCard(item) {
 
   const card =
-    document.createElement("div");
+    document.createElement(
+      "div"
+    );
 
   card.className =
     "result-card";
@@ -689,9 +722,7 @@ function makeCard(item) {
 
       <p>${snippet}</p>
 
-      <small>
-        ${escapeHtml(url)}
-      </small>
+      <small>${escapeHtml(url)}</small>
 
     </a>
   `;
@@ -726,13 +757,15 @@ function showWebResults(data) {
     return;
   }
 
-  list.forEach(item => {
+  list.forEach(
+    item => {
 
-    results.appendChild(
-      makeCard(item)
-    );
+      results.appendChild(
+        makeCard(item)
+      );
 
-  });
+    }
+  );
 
 }
 
@@ -746,10 +779,8 @@ async function performSearch(query) {
   query =
     String(query || "").trim();
 
-  if (
-    !query &&
-    !selectedImage
-  ) {
+  // Text या image में से कम-से-कम एक होना चाहिए
+  if (!query && !selectedImage) {
     return;
   }
 
@@ -759,12 +790,11 @@ async function performSearch(query) {
 
   isSearching = true;
 
-  // Save only text searches
+  // सिर्फ text search history में save होगा
   if (query) {
     saveSearchHistory(query);
   }
 
-  // Show loading
   if (searchStatus) {
 
     searchStatus.textContent =
@@ -775,7 +805,7 @@ async function performSearch(query) {
   if (directAnswer) {
 
     directAnswer.textContent =
-      "⏳ जग्गा जासूस जवाब तैयार कर रहा है...";
+      "⏳ 🕵️ जग्गा जासूस जवाब तैयार कर रहा है...";
 
   }
 
@@ -784,16 +814,18 @@ async function performSearch(query) {
   }
 
   if (results) {
+
     results.innerHTML = `
       <div class="empty-history">
         🌐 Web results लोड हो रहे हैं...
       </div>
     `;
+
   }
 
   try {
 
-    // AI + Web search simultaneously
+    // AI और Web Search एक साथ
     const aiPromise =
       askAI(
         query,
@@ -816,7 +848,6 @@ async function performSearch(query) {
         webPromise
       ]);
 
-    // Web results
     showWebResults(
       webData
     );
@@ -879,32 +910,6 @@ if (searchForm) {
         searchInput.value.trim();
 
       performSearch(query);
-
-    }
-  );
-
-}
-
-
-// ===============================
-// ENTER KEY
-// ===============================
-
-if (searchInput) {
-
-  searchInput.addEventListener(
-    "keydown",
-    event => {
-
-      if (
-        event.key === "Enter"
-      ) {
-
-        event.preventDefault();
-
-        searchForm.requestSubmit();
-
-      }
 
     }
   );
@@ -976,13 +981,12 @@ if (micBtn) {
       }
     );
 
-
     recognition.onresult =
       event => {
 
         const transcript =
-          event.results?.[0]?.[0]?.transcript ||
-          "";
+          event.results?.[0]?.[0]
+            ?.transcript || "";
 
         searchInput.value =
           transcript;
@@ -995,7 +999,6 @@ if (micBtn) {
         );
 
       };
-
 
     recognition.onerror =
       () => {
@@ -1012,7 +1015,6 @@ if (micBtn) {
 
       };
 
-
     recognition.onend =
       () => {
 
@@ -1027,7 +1029,7 @@ if (micBtn) {
 
 
 // ===============================
-// QUICK SEARCH LINKS
+// QUICK SEARCH
 // ===============================
 
 document
@@ -1061,7 +1063,7 @@ document
 
 
 // ===============================
-// PAGE LOAD
+// LOAD HISTORY
 // ===============================
 
 renderSearchHistory();
