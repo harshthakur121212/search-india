@@ -30,18 +30,16 @@ export default async function handler(req, res) {
     });
   }
 
-  // New Gemini models
-  // 3.8 first, then reliable fallbacks
+  // Fast model first
   const models = [
-    "gemini-3.8-flash",
-    "gemini-3.7-flash",
-    "gemini-3.6-flash",
+    "gemini-3.5-flash-lite",
     "gemini-3.5-flash",
-    "gemini-3.5-flash-lite"
+    "gemini-3.8-flash"
   ];
 
   let imagePart = null;
 
+  // Image support
   if (
     image &&
     typeof image === "string" &&
@@ -65,38 +63,42 @@ export default async function handler(req, res) {
     ? `
 आप Search India AI हैं।
 
-इस image को ध्यान से पढ़ें और user के सवाल का सही उत्तर दें।
+Image को ध्यान से पढ़कर user के सवाल का सही उत्तर दें।
 
-अगर image में पढ़ाई का सवाल है:
-- सवाल समझें
-- सही answer दें
-- जरूरत होने पर step-by-step explanation दें
-- Class 11/12 या NEET का सवाल हो तो exam-oriented answer दें
+अगर यह पढ़ाई का सवाल है:
+- पहले सही answer दें
+- फिर short explanation दें
+- जरूरत होने पर steps दिखाएं
+- Class 11/12 या NEET level हो तो exam-oriented रखें
 
-User का सवाल:
+User Question:
 ${query || "इस image में दिए गए सवाल का उत्तर बताइए।"}
 
-उत्तर सरल Hindi/Hinglish में दें।
+भाषा: सरल Hindi/Hinglish
 `
     : `
 आप Search India AI हैं।
 
-User के सवाल का सही और स्पष्ट उत्तर दें।
+User के सवाल का सीधा और सही उत्तर दें।
 
 Rules:
 - Hindi/Hinglish में जवाब दें।
-- सीधे answer से शुरू करें।
-- जरूरत हो तो example दें।
-- पढ़ाई के सवाल में आसान explanation दें।
-- बेवजह बहुत लंबा जवाब न दें।
+- पहले direct answer दें।
+- जरूरत होने पर छोटा explanation दें।
+- पढ़ाई के सवाल में आसान तरीके से समझाएं।
+- अनावश्यक लंबा जवाब न दें।
 
-User Question:
+Question:
 ${query}
 `;
 
   for (const model of models) {
     try {
-      const parts = [{ text: prompt }];
+      const parts = [
+        {
+          text: prompt
+        }
+      ];
 
       if (imagePart) {
         parts.push(imagePart);
@@ -114,11 +116,11 @@ ${query}
             contents: [
               {
                 role: "user",
-                parts: parts
+                parts
               }
             ],
             generationConfig: {
-              maxOutputTokens: 1200
+              maxOutputTokens: 700
             }
           })
         }
@@ -128,11 +130,10 @@ ${query}
 
       if (!response.ok) {
         console.error(
-          `Gemini ${model} error:`,
+          `Gemini ${model}:`,
           response.status,
           data
         );
-
         continue;
       }
 
@@ -143,29 +144,26 @@ ${query}
           .trim();
 
       if (!answer) {
-        console.error(
-          `Gemini ${model}: empty response`
-        );
         continue;
       }
 
       return res.status(200).json({
         success: true,
-        answer: answer,
-        model: model,
+        answer,
+        model,
         source: "Google Gemini"
       });
 
     } catch (error) {
       console.error(
-        `Model ${model} failed:`,
-        error
+        `Gemini ${model} failed:`,
+        error?.message || error
       );
     }
   }
 
   return res.status(503).json({
     success: false,
-    error: "All Gemini models are temporarily unavailable"
+    error: "AI service temporarily unavailable"
   });
-          }
+}
