@@ -695,3 +695,51 @@ body {
   }
 
   }
+/* Search India Footer */
+
+.site-footer {
+  width: 100%;
+  margin-top: 40px;
+  padding: 28px 15px;
+  text-align: center;
+  background: #111827;
+  color: #fff;
+  box-sizing: border-box;
+}
+
+.footer-title {
+  font-size: 20px;
+  font-weight: bold;
+  margin-bottom: 15px;
+}
+
+.footer-links {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 10px 18px;
+}
+
+.footer-links a {
+  color: #fff;
+  text-decoration: none;
+  font-size: 14px;
+}
+
+.footer-links a:hover {
+  text-decoration: underline;
+}
+
+.footer-copy {
+  margin: 18px 0 0;
+  font-size: 13px;
+  opacity: 0.75;
+}
+
+@media (max-width: 600px) {
+  .footer-links {
+    flex-direction: column;
+    gap: 12px;
+  }
+}
