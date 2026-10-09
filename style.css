@@ -515,3 +515,111 @@ button {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 }
+
+
+/* Search India Live News */
+
+.news-section .section-title {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px;
+}
+
+#refreshNewsBtn {
+  margin-left: auto;
+  border: 1px solid #e3e8ef;
+  background: white;
+  border-radius: 10px;
+  padding: 9px 12px;
+  color: #172033;
+}
+
+#refreshNewsBtn:disabled {
+  opacity: 0.6;
+  cursor: wait;
+}
+
+.news-status {
+  color: #687386;
+  font-size: 13px;
+  margin: 10px 0 16px;
+}
+
+.news-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 16px;
+  align-items: stretch;
+}
+
+.news-card {
+  min-width: 0;
+  background: white;
+  border: 1px solid #e3e8ef;
+  border-radius: 14px;
+  overflow: hidden;
+  transition: box-shadow 0.2s ease, transform 0.2s ease;
+}
+
+.news-card:hover {
+  box-shadow: 0 7px 22px #00000012;
+  transform: translateY(-2px);
+}
+
+.news-card-link {
+  display: block;
+  height: 100%;
+  padding: 15px;
+  color: #172033;
+  text-decoration: none;
+  overflow-wrap: anywhere;
+}
+
+.news-card-link img {
+  display: block;
+  width: calc(100% + 30px);
+  max-width: none;
+  height: 155px;
+  margin: -15px -15px 14px;
+  object-fit: cover;
+  background: #eef1f6;
+}
+
+.news-card-link h3 {
+  margin: 0 0 10px;
+  color: #145db8;
+  font-size: 17px;
+  line-height: 1.5;
+}
+
+.news-card-link p {
+  color: #4d586b;
+  font-size: 14px;
+  line-height: 1.65;
+  margin: 0 0 12px;
+}
+
+.news-source {
+  color: #e85d04;
+  font-size: 12px;
+  font-weight: bold;
+  margin: 12px 0 7px;
+}
+
+.news-card-link small {
+  display: block;
+  color: #687386;
+  font-size: 11px;
+  line-height: 1.5;
+}
+
+@media (max-width: 480px) {
+  .news-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .news-card-link img {
+    height: 190px;
+  }
+}
