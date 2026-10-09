@@ -579,3 +579,121 @@ document.querySelectorAll("[data-search]").forEach(button => {
 });
 
 renderSearchHistory();
+
+
+async function loadLiveNews() {
+  const newsGrid = document.getElementById("newsGrid");
+  const newsStatus = document.getElementById("newsStatus");
+  const refreshBtn = document.getElementById("refreshNewsBtn");
+
+  if (!newsGrid) return;
+
+  if (refreshBtn) refreshBtn.disabled = true;
+  if (newsStatus) newsStatus.textContent = "📰 ताज़ा खबरें लोड हो रही हैं...";
+
+  try {
+    const response = await fetch("/api/news");
+    const data = await response.json();
+
+    if (!response.ok || !Array.isArray(data.news)) {
+      throw new Error(data.error || "News load failed");
+    }
+
+    if (!data.news.length) {
+      newsGrid.innerHTML =
+        '<div class="empty">अभी खबरें उपलब्ध नहीं हैं। थोड़ी देर बाद Refresh करें।</div>';
+
+      if (newsStatus) {
+        newsStatus.textContent = "फिलहाल कोई खबर नहीं मिली।";
+      }
+      return;
+    }
+
+    newsGrid.innerHTML = "";
+
+    data.news.forEach(article => {
+      const card = document.createElement("article");
+      card.className = "news-card";
+
+      const link = document.createElement("a");
+      link.className = "news-card-link";
+      link.href = article.link;
+      link.target = "_blank";
+      link.rel = "noopener noreferrer";
+
+      if (article.image) {
+        try {
+          const imageUrl = new URL(article.image);
+
+          if (["https:", "http:"].includes(imageUrl.protocol)) {
+            const image = document.createElement("img");
+            image.src = imageUrl.href;
+            image.alt = article.title || "News image";
+            image.loading = "lazy";
+            image.referrerPolicy = "no-referrer";
+            image.onerror = () => image.remove();
+            link.appendChild(image);
+          }
+        } catch {}
+      }
+
+      const title = document.createElement("h3");
+      title.textContent = article.title || "Untitled news";
+      link.appendChild(title);
+
+      if (article.description) {
+        const description = document.createElement("p");
+        description.textContent = article.description;
+        link.appendChild(description);
+      }
+
+      const source = document.createElement("div");
+      source.className = "news-source";
+      source.textContent = article.source || "News source";
+      link.appendChild(source);
+
+      if (article.pubDate) {
+        const date = document.createElement("small");
+        const parsedDate = new Date(article.pubDate);
+
+        date.textContent = Number.isNaN(parsedDate.getTime())
+          ? article.pubDate
+          : parsedDate.toLocaleString("hi-IN");
+
+        link.appendChild(date);
+      }
+
+      card.appendChild(link);
+      newsGrid.appendChild(card);
+    });
+
+    if (newsStatus) {
+      const updated = data.updatedAt
+        ? new Date(data.updatedAt).toLocaleTimeString("hi-IN")
+        : "";
+
+      newsStatus.textContent =
+        `✅ ${data.news.length} खबरें उपलब्ध हैं` +
+        (updated ? ` • अपडेट: ${updated}` : "");
+    }
+  } catch (error) {
+    console.error("Live news error:", error);
+
+    newsGrid.innerHTML =
+      '<div class="empty">⚠️ खबरें लोड नहीं हो सकीं। कृपया थोड़ी देर बाद फिर कोशिश करें।</div>';
+
+    if (newsStatus) {
+      newsStatus.textContent = "News service फिलहाल उपलब्ध नहीं है।";
+    }
+  } finally {
+    if (refreshBtn) refreshBtn.disabled = false;
+  }
+}
+
+const refreshNewsBtn = document.getElementById("refreshNewsBtn");
+
+if (refreshNewsBtn) {
+  refreshNewsBtn.addEventListener("click", loadLiveNews);
+}
+
+loadLiveNews();
