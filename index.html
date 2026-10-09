@@ -1,4 +1,3 @@
-
 <!DOCTYPE html>
 <html lang="hi">
 <head>
@@ -63,7 +62,7 @@
     <section id="answerBox" class="answer-section">
       <div class="section-title"><span>🤖</span><h2>Search India AI</h2></div>
       <div class="ai-card">
-        <div class="ai-heading">✨ AI का जवाब</div>
+        <div class="ai-heading">✨ जग्गा जासूस की खोज </div>
         <div id="directAnswer" class="ai-answer">यहाँ आपके सवाल का AI answer दिखाई देगा।</div>
         <div id="answerSource" class="answer-source"></div>
       </div>
@@ -76,10 +75,23 @@
       </div>
     </section>
 
-    <section class="news-section">
-      <div class="section-title"><span>📰</span><h2>Latest Search</h2></div>
-      <div id="newsGrid" class="news-grid"></div>
-    </section>
+    
+<section class="news-section" id="newsSection">
+  <div class="section-title">
+    <span>📰</span>
+    <h2>Live News — ताज़ा खबरें</h2>
+    <button id="refreshNewsBtn" type="button">🔄 Refresh</button>
+  </div>
+
+  <p id="newsStatus" class="news-status">
+    ताज़ा खबरें लोड हो रही हैं...
+  </p>
+
+  <div id="newsGrid" class="news-grid">
+    <div class="empty">📰 खबरें लोड हो रही हैं...</div>
+  </div>
+</section>
+    
 
     <section class="features-section">
       <h2>Search India की सुविधाएँ</h2>
