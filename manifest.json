@@ -1,0 +1,12 @@
+
+{
+  "name": "Search India",
+  "short_name": "Search India",
+  "description": "भारत का सर्च प्लेटफॉर्म",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "background_color": "#ffffff",
+  "theme_color": "#138808",
+  "orientation": "portrait"
+}
