@@ -1,318 +1,130 @@
+
 <!DOCTYPE html>
 <html lang="hi">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-
   <title>Search India 🇮🇳</title>
-<meta name="google-adsense-account" content="ca-pub-5620229735702217">
-  <!-- IMPORTANT -->
+  <meta name="google-adsense-account" content="ca-pub-5620229735702217">
   <link rel="stylesheet" href="style.css">
 </head>
-
 <body>
-  <button id="homeBtn" class="home-btn" type="button">
-  🏠 Home
-  </button>
-
   <header class="topbar">
-    <div class="logo">
-      🇮🇳 <span>Search India</span>
-    </div>
+    <button id="homeBtn" class="home-btn" type="button">🏠 Home</button>
+    <div class="logo">🇮🇳 <span>Search India</span></div>
+    <div class="tagline">Made for India</div>
 
-    <div class="tagline">
-      Made for India
+    <div class="account-area">
+      <button id="accountBtn" class="account-btn" type="button"
+        aria-label="Account menu" aria-expanded="false">👤</button>
+
+      <div id="accountMenu" class="account-menu hidden">
+        <button id="addAccountBtn" type="button">➕ Add account</button>
+        <button id="guestBtn" type="button">🔎 Use Search India without an account</button>
+        <button id="openHistoryBtn" type="button">🕘 Search history</button>
+        <button id="delete15Btn" type="button">🗑️ Delete last 15 minutes</button>
+        <button id="deleteAllBtn" type="button">❌ Delete all search history</button>
+      </div>
     </div>
   </header>
 
-  <main class="container">
-
+  <main class="container" id="homeContent">
     <section class="hero">
-
-      <div class="hero-logo">
-        🇮🇳
-      </div>
-
+      <div class="hero-logo">🇮🇳</div>
       <h1>Search India</h1>
-
-      <p class="subtitle">
-        भारत में कुछ भी खोजें
-      </p>
-
-      <p class="features">
-        Web Search • AI Answers • Voice • Camera
-      </p>
+      <p class="subtitle">भारत में कुछ भी खोजें</p>
+      <p class="features">Web Search • AI Answers • Voice • Camera</p>
 
       <form id="searchForm" class="search-box">
-
-        <button
-          id="micBtn"
-          class="tool-btn"
-          type="button"
-          title="Voice Search">
-          🎤
-        </button>
-
-        <input
-          id="searchInput"
-          type="search"
-          placeholder="भारत में कुछ खोजें..."
-          autocomplete="off"
-        >
-
-        <button
-          id="cameraBtn"
-          class="tool-btn"
-          type="button"
-          title="Camera Search">
-          📷
-        </button>
-
-        <button
-          class="search-btn"
-          type="submit">
-          🔍
-        </button>
-
+        <button id="micBtn" class="tool-btn" type="button" title="Voice Search">🎤</button>
+        <input id="searchInput" type="search"
+          placeholder="भारत में कुछ खोजें..." autocomplete="off">
+        <button id="cameraBtn" class="tool-btn" type="button" title="Camera Search">📷</button>
+        <button class="search-btn" type="submit">🔍</button>
       </form>
 
-      <input
-        id="imageInput"
-        type="file"
-        accept="image/*"
-        capture="environment"
-        hidden
-      >
+      <input id="imageInput" type="file" accept="image/*" capture="environment" hidden>
 
       <div id="imagePreviewBox" class="image-preview hidden">
         <img id="imagePreview" alt="Question photo">
-        <button id="removeImageBtn" type="button">
-          ✕ Photo हटाएँ
-        </button>
+        <button id="removeImageBtn" type="button">✕ Photo हटाएँ</button>
       </div>
 
       <div class="quick-search">
-
-        <button data-query="भारत के प्रधान मंत्री">
-          🇮🇳 भारत के प्रधान मंत्री
-        </button>
-
-        <button data-query="भारत का इतिहास">
-          📚 भारत का इतिहास
-        </button>
-
-        <button data-query="उत्तर प्रदेश">
-          🏠 उत्तर प्रदेश
-        </button>
-
-        <button data-query="भारत की राजधानी">
-          🏛️ भारत की राजधानी
-        </button>
-
+        <button type="button" data-search="भारत के प्रधान मंत्री">🇮🇳 भारत के प्रधान मंत्री</button>
+        <button type="button" data-search="भारत का इतिहास">📚 भारत का इतिहास</button>
+        <button type="button" data-search="उत्तर प्रदेश">🏠 उत्तर प्रदेश</button>
+        <button type="button" data-search="भारत की राजधानी">🏛️ भारत की राजधानी</button>
       </div>
-
     </section>
-
-
-    <!-- STATUS -->
 
     <div id="searchStatus" class="status hidden"></div>
 
-
-    <!-- AI -->
-
     <section id="answerBox" class="answer-section">
-
-      <div class="section-title">
-        <span>🤖</span>
-        <h2>Search India AI</h2>
-      </div>
-
+      <div class="section-title"><span>🤖</span><h2>Search India AI</h2></div>
       <div class="ai-card">
-
-        <div class="ai-heading">
-          ✨ जग्गा जासूस का जवाब
-        </div>
-
-        <div id="directAnswer" class="ai-answer">
-          यहाँ आपके सवाल का AI answer दिखाई देगा।
-        </div>
-
+        <div class="ai-heading">✨ AI का जवाब</div>
+        <div id="directAnswer" class="ai-answer">यहाँ आपके सवाल का AI answer दिखाई देगा।</div>
         <div id="answerSource" class="answer-source"></div>
-
       </div>
-
     </section>
-<section id="historySection" class="history-section">
-  <div class="section-title history-title">
-    <span>🕘</span>
-    <h2>Search History</h2>
-  </div>
-
-  <div id="historyList" class="history-list"></div>
-
-  <button id="clearHistoryBtn" class="clear-history-btn" type="button">
-    🗑️ Clear All History
-  </button>
-</section>
-
-    <!-- WEB -->
 
     <section class="results-section">
-
-      <div class="section-title">
-        <span>🌐</span>
-        <h2>Web Search Results</h2>
-      </div>
-
+      <div class="section-title"><span>🌐</span><h2>Web Search Results</h2></div>
       <div id="results" class="results-grid">
-        <div class="empty">
-          🔎 कुछ खोजने के बाद web results यहाँ दिखाई देंगे।
-        </div>
+        <div class="empty">🔎 कुछ खोजने के बाद web results यहाँ दिखाई देंगे।</div>
       </div>
-
     </section>
-
-
-    <!-- NEWS -->
 
     <section class="news-section">
-
-      <div class="section-title">
-        <span>📰</span>
-        <h2>Latest Search</h2>
-      </div>
-
+      <div class="section-title"><span>📰</span><h2>Latest Search</h2></div>
       <div id="newsGrid" class="news-grid"></div>
-
     </section>
-
-
-    <!-- FEATURES -->
 
     <section class="features-section">
-
       <h2>Search India की सुविधाएँ</h2>
-
       <div class="feature-grid">
-
-        <div class="feature-card">
-          <div>🌐</div>
-          <h3>Web Search</h3>
-          <p>पूरी web से results खोजें।</p>
-        </div>
-
-        <div class="feature-card">
-          <div>🤖</div>
-          <h3>AI Answers</h3>
-          <p>अपने सवाल का आसान AI answer पाएँ।</p>
-        </div>
-
-        <div class="feature-card">
-          <div>🎤</div>
-          <h3>Voice Search</h3>
-          <p>बोलकर search करें।</p>
-        </div>
-
-        <div class="feature-card">
-          <div>📷</div>
-          <h3>Camera Search</h3>
-          <p>Question की photo लेकर answer पाएँ।</p>
-        </div>
-
+        <div class="feature-card"><div>🌐</div><h3>Web Search</h3><p>पूरी web से results खोजें।</p></div>
+        <div class="feature-card"><div>🤖</div><h3>AI Answers</h3><p>अपने सवाल का आसान AI answer पाएँ।</p></div>
+        <div class="feature-card"><div>🎤</div><h3>Voice Search</h3><p>बोलकर search करें।</p></div>
+        <div class="feature-card"><div>📷</div><h3>Camera Search</h3><p>Question की photo लेकर answer पाएँ।</p></div>
       </div>
-
     </section>
-
   </main>
 
+  <section id="historySection" class="history-section hidden">
+    <h2>🕘 Search History</h2>
+    <button id="backFromHistoryBtn" class="history-back-btn" type="button">← वापस Home</button>
+    <div id="historyList" class="history-list"></div>
+    <button id="clearHistoryBtn" class="clear-history-btn" type="button">🗑️ Clear All History</button>
+  </section>
 
-  <footer>
-    <p>🇮🇳 Search India</p>
-    <small>Made for India • AI + Web Search</small>
+  <section class="useful-section">
+    <div class="useful-heading"><span>📚</span><h2>Search India पर क्या खोज सकते हैं?</h2></div>
+    <p class="useful-intro">Search India पर पढ़ाई, भारत, technology, cities और रोज़मर्रा की जानकारी से जुड़े सवाल आसानी से खोजें।</p>
+
+    <div class="useful-grid">
+      <button type="button" class="useful-card" data-search="Class 12 Biology"><span>📖</span><strong>Education</strong><small>पढ़ाई और exam questions</small></button>
+      <button type="button" class="useful-card" data-search="India general knowledge"><span>🇮🇳</span><strong>India Knowledge</strong><small>भारत से जुड़ी जानकारी</small></button>
+      <button type="button" class="useful-card" data-search="India cities"><span>🗺️</span><strong>States & Cities</strong><small>शहर और राज्यों की जानकारी</small></button>
+      <button type="button" class="useful-card" data-search="latest technology"><span>💻</span><strong>Technology</strong><small>Technology और internet</small></button>
+      <button type="button" class="useful-card" data-search="AI questions"><span>🤖</span><strong>AI Questions</strong><small>AI से सवाल पूछें</small></button>
+      <button type="button" class="useful-card" data-search="India information"><span>🔎</span><strong>General Information</strong><small>अलग-अलग topics खोजें</small></button>
+    </div>
+  </section>
+
+  <footer class="site-footer">
+    <div class="footer-title">🇮🇳 Search India</div>
+    <div class="footer-links">
+      <a href="about.html">About Us</a>
+      <a href="privacy.html">Privacy Policy</a>
+      <a href="terms.html">Terms &amp; Conditions</a>
+      <a href="contact.html">Contact Us</a>
+    </div>
+    <p class="footer-copy">© 2026 Search India 🇮🇳 — All Rights Reserved</p>
   </footer>
 
-
   <script src="app.js"></script>
-  <!-- Useful Search Categories -->
-<section class="useful-section">
-
-  <div class="useful-heading">
-    <span>📚</span>
-    <h2>Search India पर क्या खोज सकते हैं?</h2>
-  </div>
-
-  <p class="useful-intro">
-    Search India पर पढ़ाई, भारत, technology, cities और
-    रोज़मर्रा की जानकारी से जुड़े सवाल आसानी से खोजें।
-  </p>
-
-  <div class="useful-grid">
-
-    <button type="button" class="useful-card"
-      onclick="document.getElementById('searchInput').value='Class 12 Biology'; document.getElementById('searchForm').requestSubmit();">
-      <span>📖</span>
-      <strong>Education</strong>
-      <small>पढ़ाई और exam questions</small>
-    </button>
-
-    <button type="button" class="useful-card"
-      onclick="document.getElementById('searchInput').value='India general knowledge'; document.getElementById('searchForm').requestSubmit();">
-      <span>🇮🇳</span>
-      <strong>India Knowledge</strong>
-      <small>भारत से जुड़ी जानकारी</small>
-    </button>
-
-    <button type="button" class="useful-card"
-      onclick="document.getElementById('searchInput').value='India cities'; document.getElementById('searchForm').requestSubmit();">
-      <span>🗺️</span>
-      <strong>States & Cities</strong>
-      <small>शहर और राज्यों की जानकारी</small>
-    </button>
-
-    <button type="button" class="useful-card"
-      onclick="document.getElementById('searchInput').value='latest technology'; document.getElementById('searchForm').requestSubmit();">
-      <span>💻</span>
-      <strong>Technology</strong>
-      <small>Technology और internet</small>
-    </button>
-
-    <button type="button" class="useful-card"
-      onclick="document.getElementById('searchInput').value='AI questions'; document.getElementById('searchForm').requestSubmit();">
-      <span>🤖</span>
-      <strong>AI Questions</strong>
-      <small>AI से सवाल पूछें</small>
-    </button>
-
-    <button type="button" class="useful-card"
-      onclick="document.getElementById('searchInput').value='India information'; document.getElementById('searchForm').requestSubmit();">
-      <span>🔎</span>
-      <strong>General Information</strong>
-      <small>अलग-अलग topics खोजें</small>
-    </button>
-
-  </div>
-
-</section>
-  <!-- Search India Footer -->
-<footer class="site-footer">
-
-  <div class="footer-title">
-    🇮🇳 Search India
-  </div>
-
-  <div class="footer-links">
-    <a href="about.html">About Us</a>
-    <a href="privacy.html">Privacy Policy</a>
-    <a href="terms.html">Terms & Conditions</a>
-    <a href="contact.html">Contact Us</a>
-  </div>
-
-  <p class="footer-copy">
-    © 2026 Search India 🇮🇳 — All Rights Reserved
-  </p>
-
-</footer>
-
 </body>
   </html>
+  
