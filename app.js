@@ -22,6 +22,33 @@ const HISTORY_KEY = "searchIndiaHistory";
 let selectedImage = null;
 let isSearching = false;
 
+// Browser ka local timezone detect karein.
+// Agar detect na ho, to India Standard Time use hoga.
+function getUserTimeZone() {
+  try {
+    return Intl.DateTimeFormat().resolvedOptions().timeZone ||
+      "Asia/Kolkata";
+  } catch {
+    return "Asia/Kolkata";
+  }
+}
+
+function getLocalDateTime() {
+  try {
+    return new Intl.DateTimeFormat("en-IN", {
+      timeZone: getUserTimeZone(),
+      dateStyle: "full",
+      timeStyle: "long"
+    }).format(new Date());
+  } catch {
+    return new Intl.DateTimeFormat("en-IN", {
+      timeZone: "Asia/Kolkata",
+      dateStyle: "full",
+      timeStyle: "long"
+    }).format(new Date());
+  }
+}
+
 function escapeHtml(value) {
   return String(value ?? "")
     .replace(/&/g, "&amp;")
@@ -33,7 +60,10 @@ function escapeHtml(value) {
 
 function getSearchHistory() {
   try {
-    const items = JSON.parse(localStorage.getItem(HISTORY_KEY) || "[]");
+    const items = JSON.parse(
+      localStorage.getItem(HISTORY_KEY) || "[]"
+    );
+
     if (!Array.isArray(items)) return [];
 
     return items.map(item => {
@@ -43,7 +73,9 @@ function getSearchHistory() {
 
       return {
         query: String(item?.query || ""),
-        timestamp: Number.isFinite(item?.timestamp) ? item.timestamp : null
+        timestamp: Number.isFinite(item?.timestamp)
+          ? item.timestamp
+          : null
       };
     }).filter(item => item.query.trim());
   } catch {
@@ -52,7 +84,11 @@ function getSearchHistory() {
 }
 
 function writeSearchHistory(history) {
-  localStorage.setItem(HISTORY_KEY, JSON.stringify(history));
+  try {
+    localStorage.setItem(HISTORY_KEY, JSON.stringify(history));
+  } catch (error) {
+    console.error("History save error:", error);
+  }
 }
 
 function saveSearchHistory(query) {
@@ -83,6 +119,7 @@ function renderSearchHistory() {
   if (!history.length) {
     historyList.innerHTML =
       '<div class="empty-history">🕘 अभी कोई search history नहीं है।</div>';
+
     if (clearHistoryBtn) clearHistoryBtn.style.display = "none";
     return;
   }
@@ -102,16 +139,20 @@ function renderSearchHistory() {
           <small>${escapeHtml(timeLabel)}</small>
         </button>
         <button class="history-delete" type="button"
-          data-delete-index="${index}" aria-label="Delete search">🗑️</button>
+          data-delete-index="${index}"
+          aria-label="Delete search">🗑️</button>
       </div>`;
   }).join("");
 
   historyList.querySelectorAll("[data-history-index]").forEach(button => {
     button.addEventListener("click", () => {
-      const item = getSearchHistory()[Number(button.dataset.historyIndex)];
-      if (!item) return;
+      const item = getSearchHistory()[
+        Number(button.dataset.historyIndex)
+      ];
 
+      if (!item) return;
       if (searchInput) searchInput.value = item.query;
+
       showHome();
       performSearch(item.query);
     });
@@ -127,7 +168,10 @@ function renderSearchHistory() {
 
 function closeAccountMenu() {
   if (accountMenu) accountMenu.classList.add("hidden");
-  if (accountBtn) accountBtn.setAttribute("aria-expanded", "false");
+
+  if (accountBtn) {
+    accountBtn.setAttribute("aria-expanded", "false");
+  }
 }
 
 if (accountBtn && accountMenu) {
@@ -141,7 +185,7 @@ if (accountBtn && accountMenu) {
 
   accountMenu.addEventListener("click", event => event.stopPropagation());
 
-  document.addEventListener("click", () => closeAccountMenu());
+  document.addEventListener("click", closeAccountMenu);
 }
 
 const addAccountBtn = document.getElementById("addAccountBtn");
@@ -154,7 +198,11 @@ const deleteAllBtn = document.getElementById("deleteAllBtn");
 if (addAccountBtn) {
   addAccountBtn.addEventListener("click", () => {
     closeAccountMenu();
-    alert("Add account का वास्तविक login अभी सेट नहीं है। इसके लिए सुरक्षित authentication setup करना होगा।");
+
+    alert(
+      "Add account का वास्तविक login अभी सेट नहीं है। " +
+      "इसके लिए सुरक्षित authentication setup करना होगा।"
+    );
   });
 }
 
@@ -166,12 +214,17 @@ function showHistory() {
   closeAccountMenu();
 
   if (homeContent) homeContent.classList.add("hidden");
+
   document.querySelector(".useful-section")?.classList.add("hidden");
 
   if (historySection) historySection.classList.remove("hidden");
 
   renderSearchHistory();
-  historySection?.scrollIntoView({ behavior: "smooth", block: "start" });
+
+  historySection?.scrollIntoView({
+    behavior: "smooth",
+    block: "start"
+  });
 }
 
 function showHome() {
@@ -179,6 +232,7 @@ function showHome() {
   if (homeContent) homeContent.classList.remove("hidden");
 
   document.querySelector(".useful-section")?.classList.remove("hidden");
+
   closeAccountMenu();
 }
 
@@ -195,6 +249,7 @@ if (delete15Btn) {
     if (!confirm("पिछले 15 मिनट की search history हटाएँ?")) return;
 
     const cutoff = Date.now() - 15 * 60 * 1000;
+
     const history = getSearchHistory().filter(item =>
       item.timestamp === null || item.timestamp < cutoff
     );
@@ -203,26 +258,37 @@ if (delete15Btn) {
     renderSearchHistory();
     closeAccountMenu();
 
-    alert("पिछले 15 मिनट की समय वाली searches हटा दी गईं। जिन पुरानी entries का समय उपलब्ध नहीं है, वे सुरक्षित रखी गई हैं।");
+    alert("पिछले 15 मिनट की समय वाली searches हटा दी गईं।");
   });
 }
 
 function clearAllHistory() {
   if (!confirm("क्या पूरी search history हटानी है?")) return;
 
-  localStorage.removeItem(HISTORY_KEY);
+  try {
+    localStorage.removeItem(HISTORY_KEY);
+  } catch (error) {
+    console.error(error);
+  }
+
   renderSearchHistory();
   closeAccountMenu();
 }
 
-if (deleteAllBtn) deleteAllBtn.addEventListener("click", clearAllHistory);
-if (clearHistoryBtn) clearHistoryBtn.addEventListener("click", clearAllHistory);
+if (deleteAllBtn) {
+  deleteAllBtn.addEventListener("click", clearAllHistory);
+}
+
+if (clearHistoryBtn) {
+  clearHistoryBtn.addEventListener("click", clearAllHistory);
+}
 
 if (homeBtn) {
   homeBtn.addEventListener("click", () => {
     showHome();
 
     if (searchInput) searchInput.value = "";
+
     selectedImage = null;
     if (imageInput) imageInput.value = "";
 
@@ -232,7 +298,8 @@ if (homeBtn) {
     }
 
     if (directAnswer) {
-      directAnswer.textContent = "यहाँ आपके सवाल का AI answer दिखाई देगा।";
+      directAnswer.textContent =
+        "यहाँ आपके सवाल का AI answer दिखाई देगा।";
     }
 
     if (answerSource) answerSource.textContent = "";
@@ -244,6 +311,9 @@ if (homeBtn) {
 
     const previewBox = document.getElementById("imagePreviewBox");
     if (previewBox) previewBox.classList.add("hidden");
+
+    const previewImage = document.getElementById("imagePreview");
+    if (previewImage) previewImage.removeAttribute("src");
 
     window.scrollTo({ top: 0, behavior: "smooth" });
   });
@@ -276,16 +346,22 @@ function compressImage(file) {
         canvas.height = height;
 
         const ctx = canvas.getContext("2d");
+
+        if (!ctx) {
+          reject(new Error("Image canvas unavailable"));
+          return;
+        }
+
         ctx.drawImage(img, 0, 0, width, height);
 
         resolve(canvas.toDataURL("image/jpeg", 0.72));
       };
 
-      img.onerror = reject;
+      img.onerror = () => reject(new Error("Image could not be read"));
       img.src = event.target.result;
     };
 
-    reader.onerror = reject;
+    reader.onerror = () => reject(new Error("File could not be read"));
     reader.readAsDataURL(file);
   });
 }
@@ -335,13 +411,10 @@ if (imageInput) {
       selectedImage = await compressImage(file);
       showImagePreview(selectedImage);
 
-      if (searchStatus) {
-        searchStatus.textContent = "📷 फोटो से जवाब खोज रहा है...";
-      }
-
-      await performSearch("");
+      await performSearch(searchInput?.value.trim() || "");
     } catch (error) {
       console.error("Image error:", error);
+
       if (searchStatus) {
         searchStatus.classList.remove("hidden");
         searchStatus.textContent = "⚠️ फोटो पढ़ी नहीं जा सकी।";
@@ -354,22 +427,37 @@ async function askAI(query, image = null) {
   try {
     const response = await fetch(`${API_BASE}/api/ask`, {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ query, image })
+      headers: {
+        "Content-Type": "application/json"
+      },
+      body: JSON.stringify({
+        query,
+        image,
+        timeZone: getUserTimeZone(),
+        localDateTime: getLocalDateTime()
+      })
     });
 
     const data = await response.json();
 
     if (!response.ok) {
-      throw new Error(data?.error || "AI request failed");
+      throw new Error(
+        data?.message || data?.error || "AI request failed"
+      );
     }
 
     if (!data?.answer) {
       throw new Error("AI answer empty");
     }
 
-    if (directAnswer) directAnswer.textContent = data.answer;
-    if (answerSource) answerSource.textContent = `⚡ ${data.model || "AI"}`;
+    if (directAnswer) {
+      directAnswer.textContent = data.answer;
+    }
+
+    if (answerSource) {
+      answerSource.textContent =
+        `⚡ ${data.source || data.model || "Search India AI"}`;
+    }
 
     return data;
   } catch (error) {
@@ -381,6 +469,7 @@ async function askAI(query, image = null) {
     }
 
     if (answerSource) answerSource.textContent = "";
+
     return null;
   }
 }
@@ -394,13 +483,19 @@ async function webSearch(query) {
     const data = await response.json();
 
     if (!response.ok) {
-      throw new Error(data?.error || "Web search failed");
+      throw new Error(
+        data?.message || data?.error || "Web search failed"
+      );
     }
 
     return data;
   } catch (error) {
     console.error("Web search error:", error);
-    return { results: [], error: error.message };
+
+    return {
+      results: [],
+      error: error.message
+    };
   }
 }
 
@@ -409,8 +504,11 @@ function makeCard(item) {
   card.className = "result-card";
 
   const title = escapeHtml(item?.title || "Untitled");
+
   const snippet = escapeHtml(
-    item?.snippet || item?.content || "इस website से जानकारी उपलब्ध है।"
+    item?.snippet ||
+    item?.content ||
+    "इस website से जानकारी उपलब्ध है।"
   );
 
   const url = String(item?.url || "");
@@ -479,17 +577,21 @@ async function performSearch(query) {
 
   try {
     const aiPromise = askAI(query, selectedImage);
+
     const webPromise = query
       ? webSearch(query)
       : Promise.resolve({ results: [] });
 
-    const [aiData, webData] = await Promise.all([aiPromise, webPromise]);
+    const [aiData, webData] = await Promise.all([
+      aiPromise,
+      webPromise
+    ]);
 
     showWebResults(webData);
 
     if (searchStatus) {
       searchStatus.textContent =
-        (aiData || webData?.results?.length)
+        aiData || webData?.results?.length
           ? "✅ Search complete"
           : "⚠️ कोई result नहीं मिला।";
     }
@@ -513,11 +615,14 @@ if (searchForm) {
 
 if (micBtn) {
   const SpeechRecognition =
-    window.SpeechRecognition || window.webkitSpeechRecognition;
+    window.SpeechRecognition ||
+    window.webkitSpeechRecognition;
 
   if (!SpeechRecognition) {
     micBtn.addEventListener("click", () => {
-      alert("आपके browser में Voice Search support नहीं है। Chrome में try करें।");
+      alert(
+        "आपके browser में Voice Search support नहीं है। Chrome में try करें।"
+      );
     });
   } else {
     const recognition = new SpeechRecognition();
@@ -541,7 +646,8 @@ if (micBtn) {
     });
 
     recognition.onresult = event => {
-      const transcript = event.results?.[0]?.[0]?.transcript || "";
+      const transcript =
+        event.results?.[0]?.[0]?.transcript || "";
 
       if (searchInput) searchInput.value = transcript;
 
@@ -554,7 +660,8 @@ if (micBtn) {
 
       if (searchStatus) {
         searchStatus.classList.remove("hidden");
-        searchStatus.textContent = "⚠️ Voice Search शुरू नहीं हो पाई।";
+        searchStatus.textContent =
+          "⚠️ Voice Search शुरू नहीं हो पाई।";
       }
     };
 
@@ -580,7 +687,6 @@ document.querySelectorAll("[data-search]").forEach(button => {
 
 renderSearchHistory();
 
-
 async function loadLiveNews() {
   const newsGrid = document.getElementById("newsGrid");
   const newsStatus = document.getElementById("newsStatus");
@@ -589,10 +695,13 @@ async function loadLiveNews() {
   if (!newsGrid) return;
 
   if (refreshBtn) refreshBtn.disabled = true;
-  if (newsStatus) newsStatus.textContent = "📰 ताज़ा खबरें लोड हो रही हैं...";
+
+  if (newsStatus) {
+    newsStatus.textContent = "📰 ताज़ा खबरें लोड हो रही हैं...";
+  }
 
   try {
-    const response = await fetch("/api/news");
+    const response = await fetch(`${API_BASE}/api/news`);
     const data = await response.json();
 
     if (!response.ok || !Array.isArray(data.news)) {
@@ -606,6 +715,7 @@ async function loadLiveNews() {
       if (newsStatus) {
         newsStatus.textContent = "फिलहाल कोई खबर नहीं मिली।";
       }
+
       return;
     }
 
@@ -617,7 +727,20 @@ async function loadLiveNews() {
 
       const link = document.createElement("a");
       link.className = "news-card-link";
-      link.href = article.link;
+
+      // Only allow HTTP(S) news links.
+      try {
+        const articleUrl = new URL(article.link);
+
+        if (!["https:", "http:"].includes(articleUrl.protocol)) {
+          return;
+        }
+
+        link.href = articleUrl.href;
+      } catch {
+        return;
+      }
+
       link.target = "_blank";
       link.rel = "noopener noreferrer";
 
@@ -658,42 +781,12 @@ async function loadLiveNews() {
 
         date.textContent = Number.isNaN(parsedDate.getTime())
           ? article.pubDate
-          : parsedDate.toLocaleString("hi-IN");
+          : parsedDate.toLocaleString("hi-IN", {
+              timeZone: getUserTimeZone()
+            });
 
         link.appendChild(date);
       }
 
       card.appendChild(link);
-      newsGrid.appendChild(card);
-    });
-
-    if (newsStatus) {
-      const updated = data.updatedAt
-        ? new Date(data.updatedAt).toLocaleTimeString("hi-IN")
-        : "";
-
-      newsStatus.textContent =
-        `✅ ${data.news.length} खबरें उपलब्ध हैं` +
-        (updated ? ` • अपडेट: ${updated}` : "");
-    }
-  } catch (error) {
-    console.error("Live news error:", error);
-
-    newsGrid.innerHTML =
-      '<div class="empty">⚠️ खबरें लोड नहीं हो सकीं। कृपया थोड़ी देर बाद फिर कोशिश करें।</div>';
-
-    if (newsStatus) {
-      newsStatus.textContent = "News service फिलहाल उपलब्ध नहीं है।";
-    }
-  } finally {
-    if (refreshBtn) refreshBtn.disabled = false;
-  }
-}
-
-const refreshNewsBtn = document.getElementById("refreshNewsBtn");
-
-if (refreshNewsBtn) {
-  refreshNewsBtn.addEventListener("click", loadLiveNews);
-}
-
-loadLiveNews();
+      newsGrid.appendCh  
