@@ -789,4 +789,31 @@ async function loadLiveNews() {
       }
 
       card.appendChild(link);
-      newsGrid.appendCh  
+      newsGrid.appendCh 
+      newsGrid.appendChild(card);
+    });
+
+    if (newsStatus) {
+      newsStatus.textContent = "✅ ताज़ा खबरें लोड हो गईं।";
+    }
+  } catch (error) {
+    console.error("News loading error:", error);
+    if (newsStatus) {
+      newsStatus.textContent = "⚠️ खबरें अभी लोड नहीं हो सकीं।";
+    }
+    if (newsGrid) {
+      newsGrid.innerHTML =
+        '<div class="empty">खबरें लोड नहीं हो सकीं। थोड़ी देर बाद फिर प्रयास करें।</div>';
+    }
+  } finally {
+    if (refreshBtn) refreshBtn.disabled = false;
+  }
+}
+
+const refreshNewsBtn = document.getElementById("refreshNewsBtn");
+
+if (refreshNewsBtn) {
+  refreshNewsBtn.addEventListener("click", loadLiveNews);
+}
+
+loadLiveNews();
