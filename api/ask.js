@@ -1,169 +1,157 @@
+
+const MODEL = "gemini-2.5-flash";
+
 export default async function handler(req, res) {
-  res.setHeader("Access-Control-Allow-Origin", "*");
-  res.setHeader("Access-Control-Allow-Methods", "POST, OPTIONS");
-  res.setHeader("Access-Control-Allow-Headers", "Content-Type");
-
-  if (req.method === "OPTIONS") {
-    return res.status(204).end();
-  }
-
   if (req.method !== "POST") {
     return res.status(405).json({
-      error: "Only POST requests are allowed"
+      success: false,
+      message: "Only POST requests are allowed."
     });
   }
 
-  const apiKey = process.env.INDIAN_SEARCH_API_KEY;
+  try {
+    const apiKey =
+      process.env.INDIAN_SEARCH_API_KEY ||
+      process.env.SEARCH_INDIA_API_KEY ||
+      process.env.GEMINI_API_KEY;
 
-  if (!apiKey) {
-    return res.status(500).json({
-      error: "INDIAN_SEARCH_API_KEY is not configured"
-    });
-  }
-
-  const query = String(req.body?.query || "").trim();
-  const image = req.body?.image || null;
-
-  if (!query && !image) {
-    return res.status(400).json({
-      error: "Query or image is required"
-    });
-  }
-
-  // Fast model first
-  const models = [
-    "gemini-3.5-flash-lite",
-    "gemini-3.5-flash",
-    "gemini-3.8-flash"
-  ];
-
-  let imagePart = null;
-
-  // Image support
-  if (
-    image &&
-    typeof image === "string" &&
-    image.startsWith("data:image/")
-  ) {
-    const match = image.match(
-      /^data:(image\/[a-zA-Z0-9.+-]+);base64,(.+)$/
-    );
-
-    if (match) {
-      imagePart = {
-        inline_data: {
-          mime_type: match[1],
-          data: match[2]
-        }
-      };
+    if (!apiKey) {
+      return res.status(500).json({
+        success: false,
+        message: "AI API key is missing in Vercel."
+      });
     }
-  }
 
-  const prompt = imagePart
-    ? `
-आप Search India AI हैं।
+    const body = req.body || {};
+    const question = String(
+      body.question || body.query || body.prompt || ""
+    ).trim();
 
-Image को ध्यान से पढ़कर user के सवाल का सही उत्तर दें।
+    if (!question) {
+      return res.status(400).json({
+        success: false,
+        message: "Please enter a question."
+      });
+    }
 
-अगर यह पढ़ाई का सवाल है:
-- पहले सही answer दें
-- फिर short explanation दें
-- जरूरत होने पर steps दिखाएं
-- Class 11/12 या NEET level हो तो exam-oriented रखें
+    // Browser timezone; fallback is India.
+    let timezone = "Asia/Kolkata";
+    const requestedTimezone =
+      body.timeZone || body.timezone || "";
 
-User Question:
-${query || "इस image में दिए गए सवाल का उत्तर बताइए।"}
+    if (typeof requestedTimezone === "string") {
+      try {
+        new Intl.DateTimeFormat("en-US", {
+          timeZone: requestedTimezone
+        });
+        if (requestedTimezone) timezone = requestedTimezone;
+      } catch {
+        timezone = "Asia/Kolkata";
+      }
+    }
 
-भाषा: सरल Hindi/Hinglish
-`
-    : `
-आप Search India AI हैं।
+    const now = new Date();
 
-User के सवाल का सीधा और सही उत्तर दें।
+    const currentDateTime = new Intl.DateTimeFormat("en-IN", {
+      timeZone: timezone,
+      dateStyle: "full",
+      timeStyle: "long"
+    }).format(now);
 
-Rules:
-- Hindi/Hinglish में जवाब दें।
-- पहले direct answer दें।
-- जरूरत होने पर छोटा explanation दें।
-- पढ़ाई के सवाल में आसान तरीके से समझाएं।
-- अनावश्यक लंबा जवाब न दें।
+    const prompt = `
+You are Search India AI.
 
-Question:
-${query}
+The current date and time for this user is:
+${currentDateTime}
+
+The user's timezone is: ${timezone}
+
+Instructions:
+1. If asked for today's date, give the date above.
+2. If asked for the current time, give the time above.
+3. Never invent today's date or current time.
+4. Answer in the language used by the user.
+5. For other locations, only state their local time if their
+   timezone can be identified reliably.
+6. Give clear, useful answers. Admit uncertainty when needed.
+
+User's question:
+${question}
 `;
 
-  for (const model of models) {
-    try {
-      const parts = [
-        {
-          text: prompt
-        }
-      ];
+    const parts = [{ text: prompt }];
 
-      if (imagePart) {
-        parts.push(imagePart);
-      }
-
-      const response = await fetch(
-        `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent`,
-        {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            "x-goog-api-key": apiKey
-          },
-          body: JSON.stringify({
-            contents: [
-              {
-                role: "user",
-                parts
-              }
-            ],
-            generationConfig: {
-              maxOutputTokens: 700
-            }
-          })
-        }
+    // Optional image support for data URLs.
+    if (typeof body.image === "string") {
+      const match = body.image.match(
+        /^data:(image\/(?:png|jpeg|jpg|webp|gif));base64,([A-Za-z0-9+/=\s]+)$/
       );
 
-      const data = await response.json();
-
-      if (!response.ok) {
-        console.error(
-          `Gemini ${model}:`,
-          response.status,
-          data
-        );
-        continue;
+      if (match) {
+        parts.unshift({
+          inline_data: {
+            mime_type:
+              match[1] === "image/jpg"
+                ? "image/jpeg"
+                : match[1],
+            data: match[2].replace(/\s/g, "")
+          }
+        });
       }
-
-      const answer =
-        data?.candidates?.[0]?.content?.parts
-          ?.map(part => part?.text || "")
-          .join("")
-          .trim();
-
-      if (!answer) {
-        continue;
-      }
-
-      return res.status(200).json({
-        success: true,
-        answer,
-        model,
-        source: "Google Gemini"
-      });
-
-    } catch (error) {
-      console.error(
-        `Gemini ${model} failed:`,
-        error?.message || error
-      );
     }
-  }
 
-  return res.status(503).json({
-    success: false,
-    error: "AI service temporarily unavailable"
-  });
-}
+    const apiResponse = await fetch(
+      `https://generativelanguage.googleapis.com/v1beta/models/${MODEL}:generateContent?key=${apiKey}`,
+      {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json"
+        },
+        body: JSON.stringify({
+          contents: [{ role: "user", parts }],
+          generationConfig: {
+            temperature: 0.3,
+            maxOutputTokens: 2048
+          }
+        })
+      }
+    );
+
+    const data = await apiResponse.json();
+
+    if (!apiResponse.ok) {
+      console.error("Gemini API error:", data);
+      return res.status(502).json({
+        success: false,
+        message: "AI request failed. Check the API key and Vercel logs."
+      });
+    }
+
+    const answer = (data.candidates?.[0]?.content?.parts || [])
+      .map(part => part.text || "")
+      .join("")
+      .trim();
+
+    if (!answer) {
+      return res.status(502).json({
+        success: false,
+        message: "AI returned an empty answer."
+      });
+    }
+
+    return res.status(200).json({
+      success: true,
+      answer,
+      source: "Search India AI",
+      currentDate: currentDateTime,
+      timezone
+    });
+  } catch (error) {
+    console.error("ask.js error:", error);
+
+    return res.status(500).json({
+      success: false,
+      message: "An internal server error occurred."
+    });
+  }
+        }
