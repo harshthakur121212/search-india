@@ -19,11 +19,10 @@ const accountBtn = document.getElementById("accountBtn");
 const accountMenu = document.getElementById("accountMenu");
 
 const HISTORY_KEY = "searchIndiaHistory";
+
 let selectedImage = null;
 let isSearching = false;
 
-// Browser ka local timezone detect karein.
-// Agar detect na ho, to India Standard Time use hoga.
 function getUserTimeZone() {
   try {
     return Intl.DateTimeFormat().resolvedOptions().timeZone ||
@@ -41,11 +40,7 @@ function getLocalDateTime() {
       timeStyle: "long"
     }).format(new Date());
   } catch {
-    return new Intl.DateTimeFormat("en-IN", {
-      timeZone: "Asia/Kolkata",
-      dateStyle: "full",
-      timeStyle: "long"
-    }).format(new Date());
+    return new Date().toLocaleString("en-IN");
   }
 }
 
@@ -99,7 +94,11 @@ function saveSearchHistory(query) {
     item => item.query.toLowerCase() !== query.toLowerCase()
   );
 
-  history.unshift({ query, timestamp: Date.now() });
+  history.unshift({
+    query,
+    timestamp: Date.now()
+  });
+
   writeSearchHistory(history.slice(0, 100));
   renderSearchHistory();
 }
@@ -179,12 +178,12 @@ if (accountBtn && accountMenu) {
     event.stopPropagation();
 
     const willOpen = accountMenu.classList.contains("hidden");
+
     accountMenu.classList.toggle("hidden", !willOpen);
     accountBtn.setAttribute("aria-expanded", String(willOpen));
   });
 
   accountMenu.addEventListener("click", event => event.stopPropagation());
-
   document.addEventListener("click", closeAccountMenu);
 }
 
@@ -198,10 +197,9 @@ const deleteAllBtn = document.getElementById("deleteAllBtn");
 if (addAccountBtn) {
   addAccountBtn.addEventListener("click", () => {
     closeAccountMenu();
-
     alert(
-      "Add account का वास्तविक login अभी सेट नहीं है। " +
-      "इसके लिए सुरक्षित authentication setup करना होगा।"
+      "Add account का login अभी सेट नहीं है। " +
+      "इसके लिए authentication setup करना होगा।"
     );
   });
 }
@@ -214,7 +212,6 @@ function showHistory() {
   closeAccountMenu();
 
   if (homeContent) homeContent.classList.add("hidden");
-
   document.querySelector(".useful-section")?.classList.add("hidden");
 
   if (historySection) historySection.classList.remove("hidden");
@@ -232,7 +229,6 @@ function showHome() {
   if (homeContent) homeContent.classList.remove("hidden");
 
   document.querySelector(".useful-section")?.classList.remove("hidden");
-
   closeAccountMenu();
 }
 
@@ -268,7 +264,7 @@ function clearAllHistory() {
   try {
     localStorage.removeItem(HISTORY_KEY);
   } catch (error) {
-    console.error(error);
+    console.error("History clear error:", error);
   }
 
   renderSearchHistory();
@@ -353,7 +349,6 @@ function compressImage(file) {
         }
 
         ctx.drawImage(img, 0, 0, width, height);
-
         resolve(canvas.toDataURL("image/jpeg", 0.72));
       };
 
@@ -423,6 +418,7 @@ if (imageInput) {
   });
 }
 
+
 async function askAI(query, image = null) {
   try {
     const response = await fetch(`${API_BASE}/api/ask`, {
@@ -450,9 +446,7 @@ async function askAI(query, image = null) {
       throw new Error("AI answer empty");
     }
 
-    if (directAnswer) {
-      directAnswer.textContent = data.answer;
-    }
+    if (directAnswer) directAnswer.textContent = data.answer;
 
     if (answerSource) {
       answerSource.textContent =
@@ -546,7 +540,9 @@ function showWebResults(data) {
     return;
   }
 
-  list.forEach(item => results.appendChild(makeCard(item)));
+  list.forEach(item => {
+    results.appendChild(makeCard(item));
+  });
 }
 
 async function performSearch(query) {
@@ -613,6 +609,7 @@ if (searchForm) {
   });
 }
 
+// Voice search
 if (micBtn) {
   const SpeechRecognition =
     window.SpeechRecognition ||
@@ -620,9 +617,11 @@ if (micBtn) {
 
   if (!SpeechRecognition) {
     micBtn.addEventListener("click", () => {
-      alert(
-        "आपके browser में Voice Search support नहीं है। Chrome में try करें।"
-      );
+      if (searchStatus) {
+        searchStatus.classList.remove("hidden");
+        searchStatus.textContent =
+          "⚠️ Voice Search के लिए Chrome में try करें।";
+      }
     });
   } else {
     const recognition = new SpeechRecognition();
@@ -631,46 +630,79 @@ if (micBtn) {
     recognition.continuous = false;
     recognition.interimResults = false;
 
+    let voiceSearchPending = false;
+
     micBtn.addEventListener("click", () => {
+      if (voiceSearchPending) return;
+
+      voiceSearchPending = true;
+
       try {
         recognition.start();
         micBtn.textContent = "🔴";
 
         if (searchStatus) {
           searchStatus.classList.remove("hidden");
-          searchStatus.textContent = "🎤 सुन रहा हूँ...";
+          searchStatus.textContent =
+            "🎤 बोलिए, Search India सुन रहा है...";
         }
       } catch (error) {
-        console.log(error);
+        voiceSearchPending = false;
+        micBtn.textContent = "🎤";
+        console.error("Voice start error:", error);
+
+        if (searchStatus) {
+          searchStatus.classList.remove("hidden");
+          searchStatus.textContent =
+            "⚠️ Mic शुरू नहीं हुआ। दोबारा try करें।";
+        }
       }
     });
 
     recognition.onresult = event => {
       const transcript =
-        event.results?.[0]?.[0]?.transcript || "";
+        event.results?.[0]?.[0]?.transcript?.trim() || "";
+
+      if (!transcript) {
+        if (searchStatus) {
+          searchStatus.classList.remove("hidden");
+          searchStatus.textContent =
+            "⚠️ आवाज़ समझ नहीं आई। दोबारा बोलें।";
+        }
+        return;
+      }
 
       if (searchInput) searchInput.value = transcript;
-
-      micBtn.textContent = "🎤";
-      performSearch(transcript);
-    };
-
-    recognition.onerror = () => {
-      micBtn.textContent = "🎤";
 
       if (searchStatus) {
         searchStatus.classList.remove("hidden");
         searchStatus.textContent =
-          "⚠️ Voice Search शुरू नहीं हो पाई।";
+          "🔎 आपकी आवाज़ से खोज शुरू हो रही है...";
+      }
+
+      performSearch(transcript);
+    };
+
+    recognition.onerror = event => {
+      console.error("Voice recognition error:", event.error);
+
+      if (searchStatus) {
+        searchStatus.classList.remove("hidden");
+        searchStatus.textContent =
+          event.error === "not-allowed"
+            ? "⚠️ Mic permission दें और फिर कोशिश करें।"
+            : "⚠️ Voice Search नहीं चल पाई। दोबारा try करें।";
       }
     };
 
     recognition.onend = () => {
+      voiceSearchPending = false;
       micBtn.textContent = "🎤";
     };
   }
 }
 
+// Quick search buttons
 document.querySelectorAll("[data-search]").forEach(button => {
   button.addEventListener("click", event => {
     event.preventDefault();
@@ -680,13 +712,14 @@ document.querySelectorAll("[data-search]").forEach(button => {
 
     if (searchInput) searchInput.value = query;
 
+    showHome();
     performSearch(query);
+
     window.scrollTo({ top: 0, behavior: "smooth" });
   });
 });
 
-renderSearchHistory();
-
+// Live news
 async function loadLiveNews() {
   const newsGrid = document.getElementById("newsGrid");
   const newsStatus = document.getElementById("newsStatus");
@@ -705,7 +738,7 @@ async function loadLiveNews() {
     const data = await response.json();
 
     if (!response.ok || !Array.isArray(data.news)) {
-      throw new Error(data.error || "News load failed");
+      throw new Error(data?.error || "News load failed");
     }
 
     if (!data.news.length) {
@@ -728,7 +761,6 @@ async function loadLiveNews() {
       const link = document.createElement("a");
       link.className = "news-card-link";
 
-      // Only allow HTTP(S) news links.
       try {
         const articleUrl = new URL(article.link);
 
@@ -750,11 +782,13 @@ async function loadLiveNews() {
 
           if (["https:", "http:"].includes(imageUrl.protocol)) {
             const image = document.createElement("img");
+
             image.src = imageUrl.href;
             image.alt = article.title || "News image";
             image.loading = "lazy";
             image.referrerPolicy = "no-referrer";
             image.onerror = () => image.remove();
+
             link.appendChild(image);
           }
         } catch {}
@@ -789,7 +823,6 @@ async function loadLiveNews() {
       }
 
       card.appendChild(link);
-      newsGrid.appendCh 
       newsGrid.appendChild(card);
     });
 
@@ -798,13 +831,14 @@ async function loadLiveNews() {
     }
   } catch (error) {
     console.error("News loading error:", error);
+
     if (newsStatus) {
-      newsStatus.textContent = "⚠️ खबरें अभी लोड नहीं हो सकीं।";
+      newsStatus.textContent =
+        "⚠️ खबरें अभी लोड नहीं हो सकीं।";
     }
-    if (newsGrid) {
-      newsGrid.innerHTML =
-        '<div class="empty">खबरें लोड नहीं हो सकीं। थोड़ी देर बाद फिर प्रयास करें।</div>';
-    }
+
+    newsGrid.innerHTML =
+      '<div class="empty">खबरें लोड नहीं हो सकीं। थोड़ी देर बाद फिर प्रयास करें।</div>';
   } finally {
     if (refreshBtn) refreshBtn.disabled = false;
   }
@@ -816,4 +850,7 @@ if (refreshNewsBtn) {
   refreshNewsBtn.addEventListener("click", loadLiveNews);
 }
 
+renderSearchHistory();
 loadLiveNews();
+    
+    
