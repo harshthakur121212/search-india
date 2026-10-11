@@ -1,8 +1,9 @@
 
-const MODEL = "gemini-2.5-flash";
+const MODEL = "gemini-3.5-flash";
 
 export default async function handler(req, res) {
   if (req.method !== "POST") {
+    res.setHeader("Allow", "POST");
     return res.status(405).json({
       success: false,
       message: "Only POST requests are allowed."
@@ -18,7 +19,7 @@ export default async function handler(req, res) {
     if (!apiKey) {
       return res.status(500).json({
         success: false,
-        message: "AI API key is missing in Vercel."
+        message: "AI API key missing. Check Vercel Environment Variables."
       });
     }
 
@@ -34,66 +35,53 @@ export default async function handler(req, res) {
       });
     }
 
-    // Browser timezone; fallback is India.
     let timezone = "Asia/Kolkata";
-    const requestedTimezone =
-      body.timeZone || body.timezone || "";
+    const requestedTimezone = body.timeZone || body.timezone;
 
-    if (typeof requestedTimezone === "string") {
+    if (typeof requestedTimezone === "string" && requestedTimezone) {
       try {
-        new Intl.DateTimeFormat("en-US", {
+        new Intl.DateTimeFormat("en-IN", {
           timeZone: requestedTimezone
         });
-        if (requestedTimezone) timezone = requestedTimezone;
+        timezone = requestedTimezone;
       } catch {
         timezone = "Asia/Kolkata";
       }
     }
 
-    const now = new Date();
-
     const currentDateTime = new Intl.DateTimeFormat("en-IN", {
       timeZone: timezone,
       dateStyle: "full",
       timeStyle: "long"
-    }).format(now);
+    }).format(new Date());
 
     const prompt = `
 You are Search India AI.
+Current local date and time: ${currentDateTime}
+User timezone: ${timezone}
 
-The current date and time for this user is:
-${currentDateTime}
+Answer the user's question clearly and helpfully.
+Reply in the language the user uses.
+For current facts that you cannot verify, be transparent.
+For date or time questions, use the date and time provided above.
 
-The user's timezone is: ${timezone}
-
-Instructions:
-1. If asked for today's date, give the date above.
-2. If asked for the current time, give the time above.
-3. Never invent today's date or current time.
-4. Answer in the language used by the user.
-5. For other locations, only state their local time if their
-   timezone can be identified reliably.
-6. Give clear, useful answers. Admit uncertainty when needed.
-
-User's question:
+User question:
 ${question}
 `;
 
     const parts = [{ text: prompt }];
 
-    // Optional image support for data URLs.
     if (typeof body.image === "string") {
       const match = body.image.match(
-        /^data:(image\/(?:png|jpeg|jpg|webp|gif));base64,([A-Za-z0-9+/=\s]+)$/
+        /^data:(image\/(?:png|jpeg|jpg|webp));base64,([A-Za-z0-9+/=\s]+)$/
       );
 
       if (match) {
         parts.unshift({
           inline_data: {
-            mime_type:
-              match[1] === "image/jpg"
-                ? "image/jpeg"
-                : match[1],
+            mime_type: match[1] === "image/jpg"
+              ? "image/jpeg"
+              : match[1],
             data: match[2].replace(/\s/g, "")
           }
         });
@@ -101,11 +89,12 @@ ${question}
     }
 
     const apiResponse = await fetch(
-      `https://generativelanguage.googleapis.com/v1beta/models/${MODEL}:generateContent?key=${apiKey}`,
+      `https://generativelanguage.googleapis.com/v1beta/models/${MODEL}:generateContent`,
       {
         method: "POST",
         headers: {
-          "Content-Type": "application/json"
+          "Content-Type": "application/json",
+          "x-goog-api-key": apiKey
         },
         body: JSON.stringify({
           contents: [{ role: "user", parts }],
@@ -120,10 +109,14 @@ ${question}
     const data = await apiResponse.json();
 
     if (!apiResponse.ok) {
-      console.error("Gemini API error:", data);
+      console.error("Gemini API failure:", {
+        status: apiResponse.status,
+        error: data.error?.message || "Unknown provider error"
+      });
+
       return res.status(502).json({
         success: false,
-        message: "AI request failed. Check the API key and Vercel logs."
+        message: `AI provider error (${apiResponse.status}). Check Vercel Runtime Logs.`
       });
     }
 
@@ -133,9 +126,13 @@ ${question}
       .trim();
 
     if (!answer) {
+      console.error("Gemini returned no text:", {
+        finishReason: data.candidates?.[0]?.finishReason
+      });
+
       return res.status(502).json({
         success: false,
-        message: "AI returned an empty answer."
+        message: "AI returned no text. Check Vercel Runtime Logs."
       });
     }
 
@@ -147,11 +144,11 @@ ${question}
       timezone
     });
   } catch (error) {
-    console.error("ask.js error:", error);
+    console.error("ask.js internal error:", error);
 
     return res.status(500).json({
       success: false,
-      message: "An internal server error occurred."
+      message: "AI server error. Check Vercel Runtime Logs."
     });
   }
-        }
+          }
