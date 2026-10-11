@@ -1,0 +1,35 @@
+
+<!DOCTYPE html>
+<html lang="hi">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Search India — Account</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <main class="container">
+    <h1>🇮🇳 Search India</h1>
+    <h2>Login / Sign up</h2>
+
+    <form id="authForm">
+      <label for="email">Email</label>
+      <input id="email" type="email" required
+        autocomplete="email" placeholder="अपना email लिखें">
+
+      <label for="password">Password</label>
+      <input id="password" type="password" required
+        minlength="6" autocomplete="current-password"
+        placeholder="कम से कम 6 अक्षर">
+
+      <button type="submit" id="loginBtn">Login</button>
+      <button type="button" id="signupBtn">Create account</button>
+    </form>
+
+    <p id="authStatus" role="status"></p>
+    <p><a href="index.html">← Search India पर वापस जाएँ</a></p>
+  </main>
+
+  <script type="module" src="auth.js"></script>
+</body>
+</html>
