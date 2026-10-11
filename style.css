@@ -623,3 +623,65 @@ button {
     height: 190px;
   }
 }
+
+.developer-section {
+  padding: 36px 16px;
+  max-width: 900px;
+  margin: 0 auto;
+}
+
+.developer-card {
+  display: flex;
+  align-items: center;
+  gap: 22px;
+  padding: 22px;
+  border: 1px solid #d9e2ef;
+  border-radius: 20px;
+  background: #ffffff;
+  color: #172033;
+  box-shadow: 0 8px 28px rgba(0, 0, 0, 0.08);
+}
+
+.developer-photo {
+  width: 145px;
+  height: 175px;
+  object-fit: cover;
+  object-position: center 25%;
+  border-radius: 16px;
+  flex-shrink: 0;
+}
+
+.developer-label {
+  color: #16803d;
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 1.5px;
+}
+
+.developer-info h2 {
+  margin: 8px 0;
+  font-size: 26px;
+}
+
+.developer-role {
+  color: #2563eb;
+  font-weight: 700;
+}
+
+.developer-brand {
+  display: inline-block;
+  margin-top: 10px;
+  font-weight: 700;
+}
+
+@media (max-width: 520px) {
+  .developer-card {
+    flex-direction: column;
+    text-align: center;
+  }
+
+  .developer-photo {
+    width: 150px;
+    height: 180px;
+  }
+    }
