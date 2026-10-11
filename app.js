@@ -195,11 +195,10 @@ const delete15Btn = document.getElementById("delete15Btn");
 const deleteAllBtn = document.getElementById("deleteAllBtn");
 
 if (addAccountBtn) {
-  addAccountBtn.addEventListener("click", () => {
-    closeAccountMenu();
-    alert(
-      "Add account का login अभी सेट नहीं है। " +
-      "इसके लिए authentication setup करना होगा।"
+      addAccountBtn.addEventListener("click", () => {
+  window.location.href = "login.html";
+});
+
     );
   });
 }
