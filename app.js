@@ -27,9 +27,9 @@ const backFromHistoryBtn = $("backFromHistoryBtn");
 const delete15Btn = $("delete15Btn");
 const deleteAllBtn = $("deleteAllBtn");
 
-const voiceBtn = $("voiceBtn");
-const cameraBtn = $("cameraBtn");
-const cameraInput = $("cameraInput");
+const voiceBtn = document.getElementById("micBtn");
+const cameraBtn = document.getElementById("cameraBtn");
+const cameraInput = document.getElementById("imageInput");
 
 const HISTORY_KEY = "searchIndiaHistory";
 const MAX_HISTORY = 50;
