@@ -1,855 +1,687 @@
 
-const API_BASE = window.location.origin;
+"use strict";
 
-const searchInput = document.getElementById("searchInput");
-const searchForm = document.getElementById("searchForm");
-const searchStatus = document.getElementById("searchStatus");
-const results = document.getElementById("results");
-const directAnswer = document.getElementById("directAnswer");
-const answerSource = document.getElementById("answerSource");
-const micBtn = document.getElementById("micBtn");
-const cameraBtn = document.getElementById("cameraBtn");
-const imageInput = document.getElementById("imageInput");
-const homeBtn = document.getElementById("homeBtn");
-const historyList = document.getElementById("historyList");
-const clearHistoryBtn = document.getElementById("clearHistoryBtn");
-const historySection = document.getElementById("historySection");
-const homeContent = document.getElementById("homeContent");
-const accountBtn = document.getElementById("accountBtn");
-const accountMenu = document.getElementById("accountMenu");
+// ========================================
+// SEARCH INDIA 🇮🇳 — app.js
+// ========================================
+
+const $ = (id) => document.getElementById(id);
+
+const searchForm = $("searchForm");
+const searchInput = $("searchInput");
+const searchSection = $("searchSection");
+const searchStatus = $("searchStatus");
+const results = $("results");
+const answerBox = $("answerBox");
+const directAnswer = $("directAnswer");
+const answerSource = $("answerSource");
+const newsGrid = $("newsGrid");
+
+const accountBtn = $("accountBtn");
+const accountMenu = $("accountMenu");
+const addAccountBtn = $("addAccountBtn");
+const guestBtn = $("guestBtn");
+
+const openHistoryBtn = $("openHistoryBtn");
+const backFromHistoryBtn = $("backFromHistoryBtn");
+const delete15Btn = $("delete15Btn");
+const deleteAllBtn = $("deleteAllBtn");
+
+const voiceBtn = $("voiceBtn");
+const cameraBtn = $("cameraBtn");
+const cameraInput = $("cameraInput");
 
 const HISTORY_KEY = "searchIndiaHistory";
+const MAX_HISTORY = 50;
 
-let selectedImage = null;
-let isSearching = false;
+// ========================================
+// GENERAL HELPERS
+// ========================================
 
-function getUserTimeZone() {
-  try {
-    return Intl.DateTimeFormat().resolvedOptions().timeZone ||
-      "Asia/Kolkata";
-  } catch {
-    return "Asia/Kolkata";
-  }
-}
-
-function getLocalDateTime() {
-  try {
-    return new Intl.DateTimeFormat("en-IN", {
-      timeZone: getUserTimeZone(),
-      dateStyle: "full",
-      timeStyle: "long"
-    }).format(new Date());
-  } catch {
-    return new Date().toLocaleString("en-IN");
-  }
-}
-
-function escapeHtml(value) {
-  return String(value ?? "")
-    .replace(/&/g, "&amp;")
-    .replace(/</g, "&lt;")
-    .replace(/>/g, "&gt;")
-    .replace(/"/g, "&quot;")
-    .replace(/'/g, "&#039;");
-}
-
-function getSearchHistory() {
-  try {
-    const items = JSON.parse(
-      localStorage.getItem(HISTORY_KEY) || "[]"
-    );
-
-    if (!Array.isArray(items)) return [];
-
-    return items.map(item => {
-      if (typeof item === "string") {
-        return { query: item, timestamp: null };
-      }
-
-      return {
-        query: String(item?.query || ""),
-        timestamp: Number.isFinite(item?.timestamp)
-          ? item.timestamp
-          : null
-      };
-    }).filter(item => item.query.trim());
-  } catch {
-    return [];
-  }
-}
-
-function writeSearchHistory(history) {
-  try {
-    localStorage.setItem(HISTORY_KEY, JSON.stringify(history));
-  } catch (error) {
-    console.error("History save error:", error);
-  }
-}
-
-function saveSearchHistory(query) {
-  query = String(query || "").trim();
-  if (!query) return;
-
-  const history = getSearchHistory().filter(
-    item => item.query.toLowerCase() !== query.toLowerCase()
-  );
-
-  history.unshift({
-    query,
-    timestamp: Date.now()
-  });
-
-  writeSearchHistory(history.slice(0, 100));
-  renderSearchHistory();
-}
-
-function deleteSearchHistory(index) {
-  const history = getSearchHistory();
-  history.splice(index, 1);
-  writeSearchHistory(history);
-  renderSearchHistory();
-}
-
-function renderSearchHistory() {
-  if (!historyList) return;
-
-  const history = getSearchHistory();
-
-  if (!history.length) {
-    historyList.innerHTML =
-      '<div class="empty-history">🕘 अभी कोई search history नहीं है।</div>';
-
-    if (clearHistoryBtn) clearHistoryBtn.style.display = "none";
-    return;
-  }
-
-  if (clearHistoryBtn) clearHistoryBtn.style.display = "block";
-
-  historyList.innerHTML = history.map((item, index) => {
-    const timeLabel = item.timestamp
-      ? new Date(item.timestamp).toLocaleString()
-      : "पुरानी entry — समय उपलब्ध नहीं";
-
-    return `
-      <div class="history-item">
-        <button class="history-search" type="button"
-          data-history-index="${index}">
-          <span>🔎 ${escapeHtml(item.query)}</span>
-          <small>${escapeHtml(timeLabel)}</small>
-        </button>
-        <button class="history-delete" type="button"
-          data-delete-index="${index}"
-          aria-label="Delete search">🗑️</button>
-      </div>`;
-  }).join("");
-
-  historyList.querySelectorAll("[data-history-index]").forEach(button => {
-    button.addEventListener("click", () => {
-      const item = getSearchHistory()[
-        Number(button.dataset.historyIndex)
-      ];
-
-      if (!item) return;
-      if (searchInput) searchInput.value = item.query;
-
-      showHome();
-      performSearch(item.query);
-    });
-  });
-
-  historyList.querySelectorAll("[data-delete-index]").forEach(button => {
-    button.addEventListener("click", event => {
-      event.stopPropagation();
-      deleteSearchHistory(Number(button.dataset.deleteIndex));
-    });
-  });
+function setStatus(message) {
+  if (searchStatus) searchStatus.textContent = message;
 }
 
 function closeAccountMenu() {
   if (accountMenu) accountMenu.classList.add("hidden");
+  if (accountBtn) accountBtn.setAttribute("aria-expanded", "false");
+}
 
-  if (accountBtn) {
-    accountBtn.setAttribute("aria-expanded", "false");
+function showElement(element) {
+  if (element) element.classList.remove("hidden");
+}
+
+function hideElement(element) {
+  if (element) element.classList.add("hidden");
+}
+
+function clearResults() {
+  if (results) results.replaceChildren();
+
+  if (directAnswer) directAnswer.textContent = "";
+
+  if (answerSource) {
+    answerSource.textContent = "";
+    answerSource.removeAttribute("href");
   }
+
+  hideElement(answerBox);
 }
 
-if (accountBtn && accountMenu) {
-  accountBtn.addEventListener("click", event => {
-    event.stopPropagation();
-
-    const willOpen = accountMenu.classList.contains("hidden");
-
-    accountMenu.classList.toggle("hidden", !willOpen);
-    accountBtn.setAttribute("aria-expanded", String(willOpen));
-  });
-
-  accountMenu.addEventListener("click", event => event.stopPropagation());
-  document.addEventListener("click", closeAccountMenu);
-}
-
-const addAccountBtn = document.getElementById("addAccountBtn");
-const guestBtn = document.getElementById("guestBtn");
-const openHistoryBtn = document.getElementById("openHistoryBtn");
-const backFromHistoryBtn = document.getElementById("backFromHistoryBtn");
-const delete15Btn = document.getElementById("delete15Btn");
-const deleteAllBtn = document.getElementById("deleteAllBtn");
-
-if (addAccountBtn) {
-      addAccountBtn.addEventListener("click", () => {
-  window.location.href = "login.html";
-});
-
-    );
-  });
-}
-
-if (guestBtn) {
-  guestBtn.addEventListener("click", closeAccountMenu);
-}
-
-function showHistory() {
-  closeAccountMenu();
-
-  if (homeContent) homeContent.classList.add("hidden");
-  document.querySelector(".useful-section")?.classList.add("hidden");
-
-  if (historySection) historySection.classList.remove("hidden");
-
-  renderSearchHistory();
-
-  historySection?.scrollIntoView({
-    behavior: "smooth",
-    block: "start"
-  });
-}
-
-function showHome() {
-  if (historySection) historySection.classList.add("hidden");
-  if (homeContent) homeContent.classList.remove("hidden");
-
-  document.querySelector(".useful-section")?.classList.remove("hidden");
-  closeAccountMenu();
-}
-
-if (openHistoryBtn) {
-  openHistoryBtn.addEventListener("click", showHistory);
-}
-
-if (backFromHistoryBtn) {
-  backFromHistoryBtn.addEventListener("click", showHome);
-}
-
-if (delete15Btn) {
-  delete15Btn.addEventListener("click", () => {
-    if (!confirm("पिछले 15 मिनट की search history हटाएँ?")) return;
-
-    const cutoff = Date.now() - 15 * 60 * 1000;
-
-    const history = getSearchHistory().filter(item =>
-      item.timestamp === null || item.timestamp < cutoff
-    );
-
-    writeSearchHistory(history);
-    renderSearchHistory();
-    closeAccountMenu();
-
-    alert("पिछले 15 मिनट की समय वाली searches हटा दी गईं।");
-  });
-}
-
-function clearAllHistory() {
-  if (!confirm("क्या पूरी search history हटानी है?")) return;
-
+function safeUrl(value) {
   try {
-    localStorage.removeItem(HISTORY_KEY);
-  } catch (error) {
-    console.error("History clear error:", error);
-  }
+    const url = new URL(value);
 
-  renderSearchHistory();
-  closeAccountMenu();
-}
-
-if (deleteAllBtn) {
-  deleteAllBtn.addEventListener("click", clearAllHistory);
-}
-
-if (clearHistoryBtn) {
-  clearHistoryBtn.addEventListener("click", clearAllHistory);
-}
-
-if (homeBtn) {
-  homeBtn.addEventListener("click", () => {
-    showHome();
-
-    if (searchInput) searchInput.value = "";
-
-    selectedImage = null;
-    if (imageInput) imageInput.value = "";
-
-    if (results) {
-      results.innerHTML =
-        '<div class="empty">🔎 कुछ खोजने के बाद web results यहाँ दिखाई देंगे।</div>';
+    if (url.protocol === "https:" || url.protocol === "http:") {
+      return url.href;
     }
+  } catch (_) {}
 
-    if (directAnswer) {
-      directAnswer.textContent =
-        "यहाँ आपके सवाल का AI answer दिखाई देगा।";
-    }
-
-    if (answerSource) answerSource.textContent = "";
-
-    if (searchStatus) {
-      searchStatus.textContent = "";
-      searchStatus.classList.add("hidden");
-    }
-
-    const previewBox = document.getElementById("imagePreviewBox");
-    if (previewBox) previewBox.classList.add("hidden");
-
-    const previewImage = document.getElementById("imagePreview");
-    if (previewImage) previewImage.removeAttribute("src");
-
-    window.scrollTo({ top: 0, behavior: "smooth" });
-  });
+  return null;
 }
 
-function compressImage(file) {
-  return new Promise((resolve, reject) => {
-    const reader = new FileReader();
+function createLink(title, url, description = "") {
+  const safe = safeUrl(url);
+  if (!safe) return null;
 
-    reader.onload = event => {
-      const img = new Image();
-
-      img.onload = () => {
-        const maxSize = 1600;
-        let width = img.width;
-        let height = img.height;
-
-        if (width > maxSize || height > maxSize) {
-          if (width > height) {
-            height = Math.round(height * maxSize / width);
-            width = maxSize;
-          } else {
-            width = Math.round(width * maxSize / height);
-            height = maxSize;
-          }
-        }
-
-        const canvas = document.createElement("canvas");
-        canvas.width = width;
-        canvas.height = height;
-
-        const ctx = canvas.getContext("2d");
-
-        if (!ctx) {
-          reject(new Error("Image canvas unavailable"));
-          return;
-        }
-
-        ctx.drawImage(img, 0, 0, width, height);
-        resolve(canvas.toDataURL("image/jpeg", 0.72));
-      };
-
-      img.onerror = () => reject(new Error("Image could not be read"));
-      img.src = event.target.result;
-    };
-
-    reader.onerror = () => reject(new Error("File could not be read"));
-    reader.readAsDataURL(file);
-  });
-}
-
-function showImagePreview(dataUrl) {
-  const box = document.getElementById("imagePreviewBox");
-  const img = document.getElementById("imagePreview");
-
-  if (!box || !img) return;
-
-  img.src = dataUrl;
-  box.classList.remove("hidden");
-}
-
-if (cameraBtn && imageInput) {
-  cameraBtn.addEventListener("click", () => imageInput.click());
-}
-
-const removeImageBtn = document.getElementById("removeImageBtn");
-
-if (removeImageBtn) {
-  removeImageBtn.addEventListener("click", () => {
-    selectedImage = null;
-
-    if (imageInput) imageInput.value = "";
-
-    const box = document.getElementById("imagePreviewBox");
-    const img = document.getElementById("imagePreview");
-
-    if (box) box.classList.add("hidden");
-    if (img) img.removeAttribute("src");
-  });
-}
-
-if (imageInput) {
-  imageInput.addEventListener("change", async event => {
-    const file = event.target.files?.[0];
-
-    if (!file || !file.type.startsWith("image/")) return;
-
-    try {
-      if (searchStatus) {
-        searchStatus.classList.remove("hidden");
-        searchStatus.textContent = "📷 फोटो तैयार हो रही है...";
-      }
-
-      selectedImage = await compressImage(file);
-      showImagePreview(selectedImage);
-
-      await performSearch(searchInput?.value.trim() || "");
-    } catch (error) {
-      console.error("Image error:", error);
-
-      if (searchStatus) {
-        searchStatus.classList.remove("hidden");
-        searchStatus.textContent = "⚠️ फोटो पढ़ी नहीं जा सकी।";
-      }
-    }
-  });
-}
-
-
-async function askAI(query, image = null) {
-  try {
-    const response = await fetch(`${API_BASE}/api/ask`, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json"
-      },
-      body: JSON.stringify({
-        query,
-        image,
-        timeZone: getUserTimeZone(),
-        localDateTime: getLocalDateTime()
-      })
-    });
-
-    const data = await response.json();
-
-    if (!response.ok) {
-      throw new Error(
-        data?.message || data?.error || "AI request failed"
-      );
-    }
-
-    if (!data?.answer) {
-      throw new Error("AI answer empty");
-    }
-
-    if (directAnswer) directAnswer.textContent = data.answer;
-
-    if (answerSource) {
-      answerSource.textContent =
-        `⚡ ${data.source || data.model || "Search India AI"}`;
-    }
-
-    return data;
-  } catch (error) {
-    console.error("AI error:", error);
-
-    if (directAnswer) {
-      directAnswer.textContent =
-        "⚠️ अभी AI उत्तर नहीं मिल पाया। थोड़ी देर बाद फिर try करें।";
-    }
-
-    if (answerSource) answerSource.textContent = "";
-
-    return null;
-  }
-}
-
-async function webSearch(query) {
-  try {
-    const response = await fetch(
-      `${API_BASE}/api/search?q=${encodeURIComponent(query)}`
-    );
-
-    const data = await response.json();
-
-    if (!response.ok) {
-      throw new Error(
-        data?.message || data?.error || "Web search failed"
-      );
-    }
-
-    return data;
-  } catch (error) {
-    console.error("Web search error:", error);
-
-    return {
-      results: [],
-      error: error.message
-    };
-  }
-}
-
-function makeCard(item) {
-  const card = document.createElement("div");
+  const card = document.createElement("article");
   card.className = "result-card";
 
-  const title = escapeHtml(item?.title || "Untitled");
+  const heading = document.createElement("h3");
+  const link = document.createElement("a");
 
-  const snippet = escapeHtml(
-    item?.snippet ||
-    item?.content ||
-    "इस website से जानकारी उपलब्ध है।"
-  );
+  link.href = safe;
+  link.target = "_blank";
+  link.rel = "noopener noreferrer";
+  link.textContent = title || safe;
 
-  const url = String(item?.url || "");
-  let safeUrl = "#";
+  heading.appendChild(link);
+  card.appendChild(heading);
 
-  try {
-    const parsed = new URL(url);
-
-    if (parsed.protocol === "https:" || parsed.protocol === "http:") {
-      safeUrl = parsed.href;
-    }
-  } catch {}
-
-  card.innerHTML = `
-    <a href="${escapeHtml(safeUrl)}" target="_blank"
-      rel="noopener noreferrer" class="result-link">
-      <h3>${title}</h3>
-      <p>${snippet}</p>
-      <small>${escapeHtml(url)}</small>
-    </a>`;
+  if (description) {
+    const paragraph = document.createElement("p");
+    paragraph.textContent = description;
+    card.appendChild(paragraph);
+  }
 
   return card;
 }
 
-function showWebResults(data) {
-  if (!results) return;
+function addLink(title, url, description = "") {
+  const card = createLink(title, url, description);
 
-  results.innerHTML = "";
+  if (card && results) {
+    results.appendChild(card);
+  }
+}
 
-  const list = Array.isArray(data?.results) ? data.results : [];
+async function readJson(response) {
+  const text = await response.text();
 
-  if (!list.length) {
-    results.innerHTML =
-      '<div class="empty">🌐 कोई web result नहीं मिला।</div>';
-    return;
+  let data;
+
+  try {
+    data = JSON.parse(text);
+  } catch (_) {
+    throw new Error("Server se sahi JSON response nahi mila.");
   }
 
-  list.forEach(item => {
-    results.appendChild(makeCard(item));
+  if (!response.ok) {
+    throw new Error(
+      data.error ||
+      data.message ||
+      `Server error (${response.status})`
+    );
+  }
+
+  return data;
+}
+
+// ========================================
+// ACCOUNT MENU + LOGIN
+// ========================================
+
+if (accountBtn && accountMenu) {
+  accountBtn.addEventListener("click", (event) => {
+    event.stopPropagation();
+
+    const shouldOpen =
+      accountMenu.classList.contains("hidden");
+
+    accountMenu.classList.toggle("hidden", !shouldOpen);
+
+    accountBtn.setAttribute(
+      "aria-expanded",
+      String(shouldOpen)
+    );
+  });
+
+  accountMenu.addEventListener("click", (event) => {
+    event.stopPropagation();
+  });
+
+  document.addEventListener("click", closeAccountMenu);
+}
+
+if (addAccountBtn) {
+  addAccountBtn.addEventListener("click", () => {
+    closeAccountMenu();
+    window.location.href = "login.html";
   });
 }
 
-async function performSearch(query) {
-  query = String(query || "").trim();
+if (guestBtn) {
+  guestBtn.addEventListener("click", () => {
+    closeAccountMenu();
 
-  if (!query && !selectedImage) return;
-  if (isSearching) return;
+    setStatus(
+      "Aap guest mode mein Search India use kar sakte hain."
+    );
+  });
+}
 
-  isSearching = true;
+// ========================================
+// SEARCH HISTORY
+// ========================================
 
-  if (query) saveSearchHistory(query);
+function getHistory() {
+  try {
+    const data = JSON.parse(
+      localStorage.getItem(HISTORY_KEY) || "[]"
+    );
 
-  if (searchStatus) {
-    searchStatus.classList.remove("hidden");
-    searchStatus.textContent = "🔎 Search India खोज रहा है...";
+    return Array.isArray(data) ? data : [];
+  } catch (_) {
+    return [];
   }
+}
 
-  if (directAnswer) {
-    directAnswer.textContent = "⏳ AI जवाब तैयार कर रहा है...";
-  }
+function saveHistory(query) {
+  const clean = query.trim();
+  if (!clean) return;
 
-  if (answerSource) answerSource.textContent = "";
+  const history = getHistory().filter(
+    (item) =>
+      item.query.toLowerCase() !== clean.toLowerCase()
+  );
 
-  if (results) {
-    results.innerHTML =
-      '<div class="empty">🌐 Web results लोड हो रहे हैं...</div>';
-  }
+  history.unshift({
+    query: clean,
+    time: new Date().toISOString()
+  });
 
   try {
-    const aiPromise = askAI(query, selectedImage);
+    localStorage.setItem(
+      HISTORY_KEY,
+      JSON.stringify(history.slice(0, MAX_HISTORY))
+    );
+  } catch (_) {
+    setStatus("Search history save nahi ho paayi.");
+  }
+}
 
-    const webPromise = query
-      ? webSearch(query)
-      : Promise.resolve({ results: [] });
+function renderHistory() {
+  if (!results) return;
 
-    const [aiData, webData] = await Promise.all([
-      aiPromise,
-      webPromise
-    ]);
+  clearResults();
 
-    showWebResults(webData);
+  const history = getHistory();
 
-    if (searchStatus) {
-      searchStatus.textContent =
-        aiData || webData?.results?.length
-          ? "✅ Search complete"
-          : "⚠️ कोई result नहीं मिला।";
+  if (history.length === 0) {
+    setStatus("Abhi search history khaali hai.");
+    return;
+  }
+
+  setStatus("Aapki recent searches:");
+
+  history.forEach((item) => {
+    const button = document.createElement("button");
+
+    button.type = "button";
+    button.className = "history-item";
+    button.textContent = item.query;
+
+    button.addEventListener("click", () => {
+      if (searchInput) {
+        searchInput.value = item.query;
+      }
+
+      performSearch(item.query);
+    });
+
+    results.appendChild(button);
+  });
+}
+
+if (openHistoryBtn) {
+  openHistoryBtn.addEventListener("click", () => {
+    closeAccountMenu();
+    renderHistory();
+
+    if (searchSection) {
+      searchSection.scrollIntoView({
+        behavior: "smooth"
+      });
     }
-  } catch (error) {
-    console.error("Search error:", error);
+  });
+}
 
-    if (searchStatus) {
-      searchStatus.textContent = "⚠️ Search में समस्या आई।";
+if (backFromHistoryBtn) {
+  backFromHistoryBtn.addEventListener("click", () => {
+    clearResults();
+    setStatus("Search India mein apni search likhein.");
+  });
+}
+
+if (delete15Btn) {
+  delete15Btn.addEventListener("click", () => {
+    const history = getHistory().slice(15);
+
+    try {
+      localStorage.setItem(
+        HISTORY_KEY,
+        JSON.stringify(history)
+      );
+
+      renderHistory();
+      setStatus("Purani 15 searches delete kar di gayi hain.");
+    } catch (_) {
+      setStatus("History delete nahi ho paayi.");
     }
-  } finally {
-    isSearching = false;
+  });
+}
+
+if (deleteAllBtn) {
+  deleteAllBtn.addEventListener("click", () => {
+    try {
+      localStorage.removeItem(HISTORY_KEY);
+      renderHistory();
+      setStatus("Search history delete kar di gayi.");
+    } catch (_) {
+      setStatus("History delete nahi ho paayi.");
+    }
+  });
+}
+
+// ========================================
+// AI ANSWER
+// Requires /api/ask endpoint
+// ========================================
+
+async function getAIAnswer(query) {
+  const response = await fetch("/api/ask", {
+    method: "POST",
+
+    headers: {
+      "Content-Type": "application/json"
+    },
+
+    body: JSON.stringify({
+      question: query,
+      query: query
+    })
+  });
+
+  return readJson(response);
+}
+
+function displayAIAnswer(data) {
+  const answer =
+    data.answer ||
+    data.text ||
+    data.response ||
+    data.result ||
+    "";
+
+  if (!answer) return false;
+
+  if (directAnswer) {
+    directAnswer.textContent = answer;
+  }
+
+  if (answerBox) {
+    showElement(answerBox);
+  }
+
+  const source =
+    data.sourceUrl ||
+    data.source_url ||
+    data.url ||
+    "";
+
+  const safe = safeUrl(source);
+
+  if (answerSource) {
+    if (safe) {
+      answerSource.href = safe;
+      answerSource.textContent = "Source";
+      answerSource.target = "_blank";
+      answerSource.rel = "noopener noreferrer";
+    } else {
+      answerSource.removeAttribute("href");
+      answerSource.textContent = data.source || "";
+    }
+  }
+
+  return true;
+}
+
+// ========================================
+// WEB RESULTS
+// Requires /api/search endpoint
+// ========================================
+
+async function getWebResults(query) {
+  const response = await fetch("/api/search", {
+    method: "POST",
+
+    headers: {
+      "Content-Type": "application/json"
+    },
+
+    body: JSON.stringify({
+      query: query,
+      q: query
+    })
+  });
+
+  return readJson(response);
+}
+
+function displayWebResults(data) {
+  const items =
+    data.results ||
+    data.items ||
+    data.webResults ||
+    data.organic ||
+    [];
+
+  if (!Array.isArray(items) || items.length === 0) {
+    const query = searchInput
+      ? searchInput.value
+      : "";
+
+    addLink(
+      `Search the web for: ${query}`,
+      "https://www.bing.com/search?q=" +
+        encodeURIComponent(query)
+    );
+
+    return;
+  }
+
+  items.forEach((item) => {
+    const title =
+      item.title || item.name || "Search result";
+
+    const url =
+      item.url || item.link || item.href || "";
+
+    const description =
+      item.description ||
+      item.snippet ||
+      item.content ||
+      "";
+
+    addLink(title, url, description);
+  });
+}
+
+// ========================================
+// MAIN SEARCH
+// ========================================
+
+async function performSearch(rawQuery) {
+  const query = String(rawQuery || "").trim();
+
+  if (!query) {
+    setStatus("Pehle kuch search karein.");
+
+    if (searchInput) searchInput.focus();
+
+    return;
+  }
+
+  saveHistory(query);
+  clearResults();
+
+  setStatus("Search ho rahi hai...");
+
+  if (searchSection) {
+    searchSection.scrollIntoView({
+      behavior: "smooth",
+      block: "start"
+    });
+  }
+
+  const jobs = await Promise.allSettled([
+    getAIAnswer(query),
+    getWebResults(query)
+  ]);
+
+  let aiWorked = false;
+  let webWorked = false;
+  const errorMessages = [];
+
+  if (jobs[0].status === "fulfilled") {
+    aiWorked = displayAIAnswer(jobs[0].value);
+  } else {
+    errorMessages.push(
+      "AI: " + jobs[0].reason.message
+    );
+  }
+
+  if (jobs[1].status === "fulfilled") {
+    displayWebResults(jobs[1].value);
+    webWorked = true;
+  } else {
+    errorMessages.push(
+      "Web: " + jobs[1].reason.message
+    );
+  }
+
+  if (aiWorked && webWorked) {
+    setStatus("AI answer aur web results mil gaye.");
+  } else if (aiWorked || webWorked) {
+    setStatus(
+      "Kuch results mil gaye hain. Kuch features abhi unavailable hain."
+    );
+  } else {
+    setStatus(
+      "Search API mein samasya hai. " +
+      errorMessages.join(" | ")
+    );
   }
 }
 
 if (searchForm) {
-  searchForm.addEventListener("submit", event => {
+  searchForm.addEventListener("submit", (event) => {
     event.preventDefault();
-    performSearch(searchInput?.value.trim() || "");
+
+    performSearch(
+      searchInput ? searchInput.value : ""
+    );
   });
 }
 
-// Voice search
-if (micBtn) {
-  const SpeechRecognition =
-    window.SpeechRecognition ||
-    window.webkitSpeechRecognition;
+// ========================================
+// VOICE SEARCH
+// ========================================
 
-  if (!SpeechRecognition) {
-    micBtn.addEventListener("click", () => {
-      if (searchStatus) {
-        searchStatus.classList.remove("hidden");
-        searchStatus.textContent =
-          "⚠️ Voice Search के लिए Chrome में try करें।";
-      }
-    });
-  } else {
+if (voiceBtn) {
+  voiceBtn.addEventListener("click", () => {
+    const SpeechRecognition =
+      window.SpeechRecognition ||
+      window.webkitSpeechRecognition;
+
+    if (!SpeechRecognition) {
+      setStatus(
+        "Voice search ke liye Chrome browser use karein."
+      );
+      return;
+    }
+
     const recognition = new SpeechRecognition();
 
     recognition.lang = "hi-IN";
-    recognition.continuous = false;
     recognition.interimResults = false;
+    recognition.maxAlternatives = 1;
 
-    let voiceSearchPending = false;
+    recognition.onstart = () => {
+      setStatus("Boliye, Search India sun raha hai...");
+    };
 
-    micBtn.addEventListener("click", () => {
-      if (voiceSearchPending) return;
-
-      voiceSearchPending = true;
-
-      try {
-        recognition.start();
-        micBtn.textContent = "🔴";
-
-        if (searchStatus) {
-          searchStatus.classList.remove("hidden");
-          searchStatus.textContent =
-            "🎤 बोलिए, Search India सुन रहा है...";
-        }
-      } catch (error) {
-        voiceSearchPending = false;
-        micBtn.textContent = "🎤";
-        console.error("Voice start error:", error);
-
-        if (searchStatus) {
-          searchStatus.classList.remove("hidden");
-          searchStatus.textContent =
-            "⚠️ Mic शुरू नहीं हुआ। दोबारा try करें।";
-        }
-      }
-    });
-
-    recognition.onresult = event => {
+    recognition.onresult = (event) => {
       const transcript =
-        event.results?.[0]?.[0]?.transcript?.trim() || "";
+        event.results[0][0].transcript;
 
-      if (!transcript) {
-        if (searchStatus) {
-          searchStatus.classList.remove("hidden");
-          searchStatus.textContent =
-            "⚠️ आवाज़ समझ नहीं आई। दोबारा बोलें।";
-        }
-        return;
-      }
-
-      if (searchInput) searchInput.value = transcript;
-
-      if (searchStatus) {
-        searchStatus.classList.remove("hidden");
-        searchStatus.textContent =
-          "🔎 आपकी आवाज़ से खोज शुरू हो रही है...";
+      if (searchInput) {
+        searchInput.value = transcript;
       }
 
       performSearch(transcript);
     };
 
-    recognition.onerror = event => {
-      console.error("Voice recognition error:", event.error);
-
-      if (searchStatus) {
-        searchStatus.classList.remove("hidden");
-        searchStatus.textContent =
-          event.error === "not-allowed"
-            ? "⚠️ Mic permission दें और फिर कोशिश करें।"
-            : "⚠️ Voice Search नहीं चल पाई। दोबारा try करें।";
-      }
+    recognition.onerror = () => {
+      setStatus(
+        "Voice search nahi chal paayi. Microphone permission check karein."
+      );
     };
 
     recognition.onend = () => {
-      voiceSearchPending = false;
-      micBtn.textContent = "🎤";
+      if (
+        searchStatus &&
+        searchStatus.textContent.includes("sun raha")
+      ) {
+        setStatus("Voice search band ho gayi.");
+      }
     };
-  }
+
+    recognition.start();
+  });
 }
 
-// Quick search buttons
-document.querySelectorAll("[data-search]").forEach(button => {
-  button.addEventListener("click", event => {
-    event.preventDefault();
+// ========================================
+// CAMERA / IMAGE SEARCH
+// ========================================
 
-    const query = button.dataset.search;
-    if (!query) return;
-
-    if (searchInput) searchInput.value = query;
-
-    showHome();
-    performSearch(query);
-
-    window.scrollTo({ top: 0, behavior: "smooth" });
+if (cameraBtn && cameraInput) {
+  cameraBtn.addEventListener("click", () => {
+    cameraInput.click();
   });
-});
 
-// Live news
-async function loadLiveNews() {
-  const newsGrid = document.getElementById("newsGrid");
-  const newsStatus = document.getElementById("newsStatus");
-  const refreshBtn = document.getElementById("refreshNewsBtn");
+  cameraInput.addEventListener("change", () => {
+    const file =
+      cameraInput.files &&
+      cameraInput.files[0];
 
-  if (!newsGrid) return;
+    if (!file) return;
 
-  if (refreshBtn) refreshBtn.disabled = true;
+    setStatus(
+      "Image select ho gayi. Image ko samajhne ke liye vision API connect karni hogi."
+    );
 
-  if (newsStatus) {
-    newsStatus.textContent = "📰 ताज़ा खबरें लोड हो रही हैं...";
-  }
-
-  try {
-    const response = await fetch(`${API_BASE}/api/news`);
-    const data = await response.json();
-
-    if (!response.ok || !Array.isArray(data.news)) {
-      throw new Error(data?.error || "News load failed");
+    if (
+      searchInput &&
+      !searchInput.value.trim()
+    ) {
+      searchInput.value = file.name
+        .replace(/\.[^.]+$/, "")
+        .replace(/[-_]/g, " ");
     }
 
-    if (!data.news.length) {
-      newsGrid.innerHTML =
-        '<div class="empty">अभी खबरें उपलब्ध नहीं हैं। थोड़ी देर बाद Refresh करें।</div>';
+    // Image ko automatically kisi server par upload nahi kiya jaata.
+  });
+}
 
-      if (newsStatus) {
-        newsStatus.textContent = "फिलहाल कोई खबर नहीं मिली।";
-      }
+// ========================================
+// NEWS
+// Requires /api/news endpoint
+// ========================================
+
+async function loadNews() {
+  if (!newsGrid) return;
+
+  newsGrid.replaceChildren();
+
+  try {
+    const response = await fetch("/api/news");
+    const data = await readJson(response);
+
+    const items =
+      data.news ||
+      data.articles ||
+      data.results ||
+      [];
+
+    if (
+      !Array.isArray(items) ||
+      items.length === 0
+    ) {
+      newsGrid.textContent =
+        "Abhi news available nahi hai.";
 
       return;
     }
 
-    newsGrid.innerHTML = "";
+    items.forEach((item) => {
+      const card = createLink(
+        item.title || item.name || "News",
+        item.url || item.link || "",
+        item.description || item.summary || ""
+      );
 
-    data.news.forEach(article => {
-      const card = document.createElement("article");
-      card.className = "news-card";
-
-      const link = document.createElement("a");
-      link.className = "news-card-link";
-
-      try {
-        const articleUrl = new URL(article.link);
-
-        if (!["https:", "http:"].includes(articleUrl.protocol)) {
-          return;
-        }
-
-        link.href = articleUrl.href;
-      } catch {
-        return;
+      if (card) {
+        newsGrid.appendChild(card);
       }
-
-      link.target = "_blank";
-      link.rel = "noopener noreferrer";
-
-      if (article.image) {
-        try {
-          const imageUrl = new URL(article.image);
-
-          if (["https:", "http:"].includes(imageUrl.protocol)) {
-            const image = document.createElement("img");
-
-            image.src = imageUrl.href;
-            image.alt = article.title || "News image";
-            image.loading = "lazy";
-            image.referrerPolicy = "no-referrer";
-            image.onerror = () => image.remove();
-
-            link.appendChild(image);
-          }
-        } catch {}
-      }
-
-      const title = document.createElement("h3");
-      title.textContent = article.title || "Untitled news";
-      link.appendChild(title);
-
-      if (article.description) {
-        const description = document.createElement("p");
-        description.textContent = article.description;
-        link.appendChild(description);
-      }
-
-      const source = document.createElement("div");
-      source.className = "news-source";
-      source.textContent = article.source || "News source";
-      link.appendChild(source);
-
-      if (article.pubDate) {
-        const date = document.createElement("small");
-        const parsedDate = new Date(article.pubDate);
-
-        date.textContent = Number.isNaN(parsedDate.getTime())
-          ? article.pubDate
-          : parsedDate.toLocaleString("hi-IN", {
-              timeZone: getUserTimeZone()
-            });
-
-        link.appendChild(date);
-      }
-
-      card.appendChild(link);
-      newsGrid.appendChild(card);
     });
-
-    if (newsStatus) {
-      newsStatus.textContent = "✅ ताज़ा खबरें लोड हो गईं।";
-    }
-  } catch (error) {
-    console.error("News loading error:", error);
-
-    if (newsStatus) {
-      newsStatus.textContent =
-        "⚠️ खबरें अभी लोड नहीं हो सकीं।";
-    }
-
-    newsGrid.innerHTML =
-      '<div class="empty">खबरें लोड नहीं हो सकीं। थोड़ी देर बाद फिर प्रयास करें।</div>';
-  } finally {
-    if (refreshBtn) refreshBtn.disabled = false;
+  } catch (_) {
+    newsGrid.textContent =
+      "News abhi load nahi ho paayi. Baad mein dobara try karein.";
   }
 }
 
-const refreshNewsBtn = document.getElementById("refreshNewsBtn");
+// ========================================
+// QUICK SEARCH BUTTONS
+// Uses data-search="your query"
+// ========================================
 
-if (refreshNewsBtn) {
-  refreshNewsBtn.addEventListener("click", loadLiveNews);
+document
+  .querySelectorAll("[data-search]")
+  .forEach((button) => {
+    button.addEventListener("click", () => {
+      const query =
+        button.getAttribute("data-search") || "";
+
+      if (searchInput) {
+        searchInput.value = query;
+      }
+
+      performSearch(query);
+    });
+  });
+
+// ========================================
+// INITIALIZE
+// ========================================
+
+loadNews();
+
+if (searchInput) {
+  searchInput.addEventListener(
+    "keydown",
+    (event) => {
+      if (event.key === "Escape") {
+        searchInput.value = "";
+        clearResults();
+
+        setStatus("Search clear kar di gayi.");
+      }
+    }
+  );
 }
 
-renderSearchHistory();
-loadLiveNews();
-    
+console.log(
+  "Search India app.js loaded successfully."
+);
     
