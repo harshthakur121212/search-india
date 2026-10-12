@@ -2,26 +2,34 @@
 "use strict";
 
 // ========================================
-// SEARCH INDIA 🇮🇳 — UPDATED app.js
+// SEARCH INDIA 🇮🇳 — FIXED app.js
+// Preserves existing AI and Web Search APIs
 // ========================================
 
 const $ = (id) => document.getElementById(id);
 
 const searchForm = $("searchForm");
 const searchInput = $("searchInput");
-const searchSection = $("searchSection");
 const searchStatus = $("searchStatus");
 const results = $("results");
 const answerBox = $("answerBox");
 const directAnswer = $("directAnswer");
 const answerSource = $("answerSource");
 const newsGrid = $("newsGrid");
+const newsStatus = $("newsStatus");
+
+const homeBtn = $("homeBtn");
+const homeContent = $("homeContent");
+const historySection = $("historySection");
+const historyList = $("historyList");
+const usefulSection = document.querySelector(".useful-section");
+const siteFooter = document.querySelector(".site-footer");
+const developerSection = $("about-developer");
 
 const accountBtn = $("accountBtn");
 const accountMenu = $("accountMenu");
 const addAccountBtn = $("addAccountBtn");
 const guestBtn = $("guestBtn");
-
 const openHistoryBtn = $("openHistoryBtn");
 const backFromHistoryBtn = $("backFromHistoryBtn");
 const delete15Btn = $("delete15Btn");
@@ -34,6 +42,7 @@ const cameraInput = $("imageInput");
 const imagePreviewBox = $("imagePreviewBox");
 const imagePreview = $("imagePreview");
 const removeImageBtn = $("removeImageBtn");
+const refreshNewsBtn = $("refreshNewsBtn");
 
 const HISTORY_KEY = "searchIndiaHistory";
 const MAX_HISTORY = 50;
@@ -45,7 +54,10 @@ let historyViewActive = false;
 // ========================================
 
 function setStatus(message) {
-  if (searchStatus) searchStatus.textContent = message;
+  if (searchStatus) {
+    searchStatus.textContent = message;
+    showElement(searchStatus);
+  }
 }
 
 function showElement(element) {
@@ -64,8 +76,18 @@ function closeAccountMenu() {
 }
 
 function clearResults() {
-  if (results) results.replaceChildren();
-  if (directAnswer) directAnswer.textContent = "";
+  if (results) {
+    results.replaceChildren();
+
+    const empty = document.createElement("div");
+    empty.className = "empty";
+    empty.textContent = "🔎 कुछ खोजने के बाद web results यहाँ दिखाई देंगे।";
+    results.appendChild(empty);
+  }
+
+  if (directAnswer) {
+    directAnswer.textContent = "";
+  }
 
   if (answerSource) {
     answerSource.textContent = "";
@@ -77,7 +99,8 @@ function clearResults() {
 
 function safeUrl(value) {
   try {
-    const url = new URL(value);
+    const url = new URL(value, window.location.href);
+
     if (url.protocol === "https:" || url.protocol === "http:") {
       return url.href;
     }
@@ -138,6 +161,53 @@ async function readJson(response) {
 }
 
 // ========================================
+// HOME / HISTORY NAVIGATION
+// ========================================
+
+function showHome() {
+  historyViewActive = false;
+
+  showElement(homeContent);
+  hideElement(historySection);
+  showElement(usefulSection);
+  showElement(siteFooter);
+  showElement(developerSection);
+
+  closeAccountMenu();
+
+  window.scrollTo({
+    top: 0,
+    behavior: "smooth"
+  });
+}
+
+function showHistory() {
+  historyViewActive = true;
+
+  hideElement(homeContent);
+  showElement(historySection);
+  hideElement(usefulSection);
+  hideElement(siteFooter);
+  hideElement(developerSection);
+
+  closeAccountMenu();
+  renderHistory();
+
+  window.scrollTo({
+    top: 0,
+    behavior: "smooth"
+  });
+}
+
+if (homeBtn) {
+  homeBtn.addEventListener("click", showHome);
+}
+
+if (backFromHistoryBtn) {
+  backFromHistoryBtn.addEventListener("click", showHome);
+}
+
+// ========================================
 // ACCOUNT MENU
 // ========================================
 
@@ -146,6 +216,7 @@ if (accountBtn && accountMenu) {
     event.stopPropagation();
 
     const opening = accountMenu.classList.contains("hidden");
+
     accountMenu.classList.toggle("hidden", !opening);
     accountBtn.setAttribute("aria-expanded", String(opening));
   });
@@ -171,6 +242,10 @@ if (guestBtn) {
   });
 }
 
+if (openHistoryBtn) {
+  openHistoryBtn.addEventListener("click", showHistory);
+}
+
 // ========================================
 // SEARCH HISTORY
 // ========================================
@@ -184,13 +259,29 @@ function getHistory() {
   }
 }
 
+function writeHistory(history) {
+  try {
+    localStorage.setItem(
+      HISTORY_KEY,
+      JSON.stringify(history.slice(0, MAX_HISTORY))
+    );
+    return true;
+  } catch (_) {
+    setStatus("Search history save nahi ho paayi.");
+    return false;
+  }
+}
+
 function saveHistory(query) {
   const clean = String(query || "").trim();
   if (!clean) return;
 
   const history = getHistory().filter((item) => {
-    return typeof item.query === "string" &&
-      item.query.toLowerCase() !== clean.toLowerCase();
+    return (
+      item &&
+      typeof item.query === "string" &&
+      item.query.toLowerCase() !== clean.toLowerCase()
+    );
   });
 
   history.unshift({
@@ -198,112 +289,151 @@ function saveHistory(query) {
     time: new Date().toISOString()
   });
 
-  try {
-    localStorage.setItem(
-      HISTORY_KEY,
-      JSON.stringify(history.slice(0, MAX_HISTORY))
-    );
-  } catch (_) {
-    setStatus("Search history save nahi ho paayi.");
-  }
+  writeHistory(history);
+}
+
+function formatHistoryTime(value) {
+  if (!value) return "";
+
+  const date = new Date(value);
+
+  if (Number.isNaN(date.getTime())) return "";
+
+  return date.toLocaleString("en-IN", {
+    dateStyle: "medium",
+    timeStyle: "short"
+  });
 }
 
 function renderHistory() {
-  if (!results) return;
+  if (!historyList) return;
 
-  historyViewActive = true;
-  clearResults();
+  historyList.replaceChildren();
 
   const history = getHistory();
 
   if (history.length === 0) {
-    setStatus("Abhi search history khaali hai.");
+    const empty = document.createElement("div");
+    empty.className = "empty-history";
+    empty.textContent = "🕘 Abhi aapki search history khaali hai.";
+    historyList.appendChild(empty);
     return;
   }
 
-  setStatus("Aapki recent searches:");
-
-  history.forEach((item) => {
+  history.forEach((item, index) => {
     if (!item || typeof item.query !== "string") return;
 
-    const button = document.createElement("button");
-    button.type = "button";
-    button.className = "history-item";
-    button.textContent = item.query;
+    const row = document.createElement("div");
+    row.className = "history-item";
 
-    button.addEventListener("click", () => {
-      historyViewActive = false;
-      if (searchInput) searchInput.value = item.query;
+    const searchButton = document.createElement("button");
+    searchButton.type = "button";
+    searchButton.className = "history-search";
+
+    const queryText = document.createElement("span");
+    queryText.textContent = "🔎 " + item.query;
+    searchButton.appendChild(queryText);
+
+    const timeText = document.createElement("small");
+    timeText.textContent = formatHistoryTime(item.time);
+    searchButton.appendChild(timeText);
+
+    searchButton.addEventListener("click", () => {
+      showHome();
+
+      if (searchInput) {
+        searchInput.value = item.query;
+      }
+
       performSearch(item.query);
     });
 
-    results.appendChild(button);
+    const deleteButton = document.createElement("button");
+    deleteButton.type = "button";
+    deleteButton.className = "history-delete";
+    deleteButton.textContent = "🗑️";
+    deleteButton.title = "Delete this search";
+    deleteButton.setAttribute("aria-label", "Delete " + item.query);
+
+    deleteButton.addEventListener("click", () => {
+      const current = getHistory();
+
+      // Remove only the selected entry.
+      const target = current[index];
+
+      if (target && target.query === item.query && target.time === item.time) {
+        current.splice(index, 1);
+      } else {
+        const matchIndex = current.findIndex((entry) => {
+          return entry &&
+            entry.query === item.query &&
+            entry.time === item.time;
+        });
+
+        if (matchIndex !== -1) current.splice(matchIndex, 1);
+      }
+
+      if (writeHistory(current)) {
+        renderHistory();
+      }
+    });
+
+    row.appendChild(searchButton);
+    row.appendChild(deleteButton);
+    historyList.appendChild(row);
   });
 }
 
-if (openHistoryBtn) {
-  openHistoryBtn.addEventListener("click", () => {
-    closeAccountMenu();
-    renderHistory();
+function deleteLast15Minutes() {
+  const cutoff = Date.now() - 15 * 60 * 1000;
 
-    if (searchSection) {
-      searchSection.scrollIntoView({
-        behavior: "smooth",
-        block: "start"
-      });
-    }
+  const remaining = getHistory().filter((item) => {
+    if (!item || !item.time) return true;
+
+    const timestamp = new Date(item.time).getTime();
+
+    // Keep old entries and entries with unrecognizable timestamps.
+    return Number.isNaN(timestamp) || timestamp < cutoff;
   });
+
+  if (writeHistory(remaining)) {
+    if (historyViewActive) renderHistory();
+    setStatus("Pichhle 15 minutes ki search history delete kar di gayi.");
+  }
 }
 
-function leaveHistoryView() {
-  historyViewActive = false;
-  clearResults();
-  setStatus("Search India mein apni search likhein.");
-}
+function deleteAllHistory() {
+  try {
+    localStorage.removeItem(HISTORY_KEY);
 
-if (backFromHistoryBtn) {
-  backFromHistoryBtn.addEventListener("click", leaveHistoryView);
+    if (historyViewActive) renderHistory();
+
+    setStatus("Search history delete kar di gayi.");
+  } catch (_) {
+    setStatus("History delete nahi ho paayi.");
+  }
 }
 
 if (clearHistoryBtn) {
-  clearHistoryBtn.addEventListener("click", () => {
-    try {
-      localStorage.removeItem(HISTORY_KEY);
-      renderHistory();
-      setStatus("Search history clear kar di gayi.");
-    } catch (_) {
-      setStatus("History clear nahi ho paayi.");
-    }
-  });
+  clearHistoryBtn.addEventListener("click", deleteAllHistory);
 }
 
 if (delete15Btn) {
   delete15Btn.addEventListener("click", () => {
-    try {
-      const history = getHistory().slice(15);
-      localStorage.setItem(HISTORY_KEY, JSON.stringify(history));
-      renderHistory();
-      setStatus("Sabse purani 15 searches (agar maujood thi) delete kar di gayi hain.");
-    } catch (_) {
-      setStatus("History delete nahi ho paayi.");
-    }
+    closeAccountMenu();
+    deleteLast15Minutes();
   });
 }
 
 if (deleteAllBtn) {
   deleteAllBtn.addEventListener("click", () => {
-    try {
-      localStorage.removeItem(HISTORY_KEY);
-      renderHistory();
-      setStatus("Search history delete kar di gayi.");
-    } catch (_) {
-      setStatus("History delete nahi ho paayi.");
-    }
+    closeAccountMenu();
+    deleteAllHistory();
   });
 }
 
 // ========================================
-// AI ANSWER
+// AI ANSWER — EXISTING API PRESERVED
 // ========================================
 
 async function getAIAnswer(query) {
@@ -320,11 +450,15 @@ async function getAIAnswer(query) {
 }
 
 function displayAIAnswer(data) {
-  const answer = data.answer || data.text || data.response || data.result || "";
+  const answer =
+    data.answer || data.text || data.response || data.result || "";
 
   if (!answer) return false;
 
-  if (directAnswer) directAnswer.textContent = answer;
+  if (directAnswer) {
+    directAnswer.textContent = answer;
+  }
+
   showElement(answerBox);
 
   const source = safeUrl(
@@ -333,13 +467,18 @@ function displayAIAnswer(data) {
 
   if (answerSource) {
     if (source) {
-      answerSource.href = source;
-      answerSource.textContent = "Source";
-      answerSource.target = "_blank";
-      answerSource.rel = "noopener noreferrer";
+      answerSource.textContent = "";
+
+      const link = document.createElement("a");
+      link.href = source;
+      link.target = "_blank";
+      link.rel = "noopener noreferrer";
+      link.textContent = "Source";
+
+      answerSource.appendChild(link);
     } else {
-      answerSource.removeAttribute("href");
       answerSource.textContent = data.source || "";
+      answerSource.removeAttribute("href");
     }
   }
 
@@ -347,8 +486,7 @@ function displayAIAnswer(data) {
 }
 
 // ========================================
-// WEB SEARCH — FIXED GET REQUEST
-// Matches api/search.js (GET ?q=...)
+// WEB SEARCH — EXISTING GET API PRESERVED
 // ========================================
 
 async function getWebResults(query) {
@@ -368,16 +506,18 @@ function displayWebResults(data, query) {
           ? data.organic
           : [];
 
+  if (!results) return false;
+
   if (items.length === 0) {
     const message = document.createElement("p");
     message.textContent = "Is query ke liye web results nahi mile.";
-    if (results) results.appendChild(message);
+    results.appendChild(message);
 
-    // A fallback link is useful, but it is not an actual API result.
     addLink(
       "Bing par is query ko search karein",
       "https://www.bing.com/search?q=" + encodeURIComponent(query)
     );
+
     return false;
   }
 
@@ -394,7 +534,7 @@ function displayWebResults(data, query) {
   if (data.answer) {
     const summary = document.createElement("p");
     summary.textContent = "Web summary: " + data.answer;
-    if (results) results.prepend(summary);
+    results.prepend(summary);
   }
 
   return true;
@@ -413,13 +553,13 @@ async function performSearch(rawQuery) {
     return;
   }
 
-  historyViewActive = false;
+  showHome();
   saveHistory(query);
   clearResults();
   setStatus("Search ho rahi hai...");
 
-  if (searchSection) {
-    searchSection.scrollIntoView({
+  if (homeContent) {
+    homeContent.scrollIntoView({
       behavior: "smooth",
       block: "start"
     });
@@ -438,19 +578,26 @@ async function performSearch(rawQuery) {
     aiWorked = displayAIAnswer(jobs[0].value);
     if (!aiWorked) errors.push("AI response mein answer nahi mila.");
   } else {
-    errors.push("AI: " + (jobs[0].reason?.message || "Request failed"));
+    errors.push(
+      "AI: " + (jobs[0].reason?.message || "Request failed")
+    );
   }
 
   if (jobs[1].status === "fulfilled") {
     webWorked = displayWebResults(jobs[1].value, query);
   } else {
-    errors.push("Web: " + (jobs[1].reason?.message || "Request failed"));
+    errors.push(
+      "Web: " + (jobs[1].reason?.message || "Request failed")
+    );
   }
 
   if (aiWorked && webWorked) {
     setStatus("AI answer aur web results mil gaye.");
   } else if (aiWorked || webWorked) {
-    setStatus("Kuch results mile; kuch features unavailable hain. " + errors.join(" | "));
+    setStatus(
+      "Kuch results mile; kuch features unavailable hain. " +
+      errors.join(" | ")
+    );
   } else {
     setStatus("Search mein samasya: " + errors.join(" | "));
   }
@@ -482,25 +629,35 @@ if (voiceBtn) {
     recognition.interimResults = false;
     recognition.maxAlternatives = 1;
 
-    recognition.onstart = () => setStatus("Boliye, Search India sun raha hai...");
+    recognition.onstart = () => {
+      setStatus("Boliye, Search India sun raha hai...");
+    };
 
     recognition.onresult = (event) => {
-      const transcript = event.results?.[0]?.[0]?.transcript || "";
+      const transcript =
+        event.results?.[0]?.[0]?.transcript || "";
+
       if (searchInput) searchInput.value = transcript;
       if (transcript) performSearch(transcript);
     };
 
     recognition.onerror = () => {
-      setStatus("Voice search nahi chali. Microphone permission check karein.");
+      setStatus(
+        "Voice search nahi chali. Microphone permission check karein."
+      );
     };
 
-    recognition.start();
+    try {
+      recognition.start();
+    } catch (_) {
+      setStatus("Voice search start nahi ho paayi. Dobara try karein.");
+    }
   });
 }
 
 // ========================================
 // CAMERA / IMAGE PREVIEW
-// Image is NOT uploaded automatically.
+// This preview does not upload the image.
 // ========================================
 
 if (cameraBtn && cameraInput) {
@@ -517,61 +674,210 @@ if (cameraBtn && cameraInput) {
     }
 
     if (imagePreview && imagePreviewBox) {
-      imagePreview.src = URL.createObjectURL(file);
+      if (imagePreview.dataset.objectUrl) {
+        URL.revokeObjectURL(imagePreview.dataset.objectUrl);
+      }
+
+      const objectUrl = URL.createObjectURL(file);
+      imagePreview.src = objectUrl;
+      imagePreview.dataset.objectUrl = objectUrl;
+
       showElement(imagePreviewBox);
     }
 
-    setStatus("Image select ho gayi. Image se jawab ke liye vision API alag se connect karni hogi.");
+    setStatus(
+      "Image select ho gayi. Image se AI answer ke liye vision API chahiye."
+    );
 
     if (searchInput && !searchInput.value.trim()) {
-      searchInput.value = file.name.replace(/\.[^.]+$/, "").replace(/[-_]/g, " ");
+      searchInput.value = file.name
+        .replace(/\.[^.]+$/, "")
+        .replace(/[-_]/g, " ");
     }
   });
 }
 
 if (removeImageBtn) {
   removeImageBtn.addEventListener("click", () => {
-    if (imagePreview?.src) URL.revokeObjectURL(imagePreview.src);
+    if (imagePreview?.dataset.objectUrl) {
+      URL.revokeObjectURL(imagePreview.dataset.objectUrl);
+      delete imagePreview.dataset.objectUrl;
+    }
+
     if (imagePreview) imagePreview.removeAttribute("src");
     if (cameraInput) cameraInput.value = "";
+
     hideElement(imagePreviewBox);
     setStatus("Image hata di gayi.");
   });
 }
 
 // ========================================
-// NEWS
-// Requires api/news.js
+// NEWS — PHOTO + HEADLINE + DESCRIPTION
+// Supports common image URL field names.
 // ========================================
+
+function getNewsImage(item) {
+  const candidates = [
+    item.image,
+    item.imageUrl,
+    item.image_url,
+    item.thumbnail,
+    item.thumbnailUrl,
+    item.thumbnail_url,
+    item.urlToImage,
+    item.url_to_image,
+    item.photo,
+    item.media
+  ];
+
+  for (const candidate of candidates) {
+    let value = candidate;
+
+    if (candidate && typeof candidate === "object") {
+      value =
+        candidate.url ||
+        candidate.src ||
+        candidate.image ||
+        "";
+    }
+
+    const safe = safeUrl(value);
+    if (safe) return safe;
+  }
+
+  return "";
+}
+
+function createNewsCard(item) {
+  const articleUrl = safeUrl(item.url || item.link || item.href || "");
+  if (!articleUrl) return null;
+
+  const card = document.createElement("article");
+  card.className = "news-card";
+
+  const link = document.createElement("a");
+  link.className = "news-card-link";
+  link.href = articleUrl;
+  link.target = "_blank";
+  link.rel = "noopener noreferrer";
+
+  const imageUrl = getNewsImage(item);
+
+  if (imageUrl) {
+    const image = document.createElement("img");
+    image.src = imageUrl;
+    image.alt = item.title || item.name || "News image";
+    image.loading = "lazy";
+    image.referrerPolicy = "no-referrer";
+
+    image.addEventListener("error", () => {
+      image.remove();
+    }, { once: true });
+
+    link.appendChild(image);
+  } else {
+    const placeholder = document.createElement("div");
+    placeholder.className = "news-image-placeholder";
+    placeholder.textContent = "📰";
+    placeholder.setAttribute("aria-label", "News image unavailable");
+    placeholder.style.cssText =
+      "display:flex;align-items:center;justify-content:center;" +
+      "width:100%;height:155px;margin-bottom:14px;" +
+      "background:#eef1f6;font-size:42px;border-radius:8px;";
+
+    link.appendChild(placeholder);
+  }
+
+  const heading = document.createElement("h3");
+  heading.textContent = item.title || item.name || "News";
+  link.appendChild(heading);
+
+  const description =
+    item.description || item.summary || item.snippet || "";
+
+  if (description) {
+    const paragraph = document.createElement("p");
+    paragraph.textContent = description;
+    link.appendChild(paragraph);
+  }
+
+  const sourceName =
+    item.source?.name ||
+    item.source ||
+    item.publisher ||
+    "";
+
+  if (typeof sourceName === "string" && sourceName) {
+    const source = document.createElement("div");
+    source.className = "news-source";
+    source.textContent = sourceName;
+    link.appendChild(source);
+  }
+
+  card.appendChild(link);
+  return card;
+}
 
 async function loadNews() {
   if (!newsGrid) return;
 
   newsGrid.replaceChildren();
 
+  if (newsStatus) {
+    newsStatus.textContent = "ताज़ा खबरें लोड हो रही हैं...";
+  }
+
+  if (refreshNewsBtn) refreshNewsBtn.disabled = true;
+
   try {
     const response = await fetch("/api/news");
     const data = await readJson(response);
 
-    const items = data.news || data.articles || data.results || [];
+    const items = Array.isArray(data.news)
+      ? data.news
+      : Array.isArray(data.articles)
+        ? data.articles
+        : Array.isArray(data.results)
+          ? data.results
+          : [];
 
-    if (!Array.isArray(items) || items.length === 0) {
+    const cards = items
+      .map((item) => item && createNewsCard(item))
+      .filter(Boolean);
+
+    if (cards.length === 0) {
       newsGrid.textContent = "Abhi news available nahi hai.";
+
+      if (newsStatus) {
+        newsStatus.textContent =
+          "खबरें उपलब्ध नहीं हैं। थोड़ी देर बाद Refresh करें।";
+      }
+
       return;
     }
 
-    items.forEach((item) => {
-      const card = createLink(
-        item.title || item.name || "News",
-        item.url || item.link || "",
-        item.description || item.summary || item.snippet || ""
-      );
+    cards.forEach((card) => newsGrid.appendChild(card));
 
-      if (card) newsGrid.appendChild(card);
-    });
-  } catch (_) {
-    newsGrid.textContent = "News abhi load nahi ho paayi. Baad mein try karein.";
+    if (newsStatus) {
+      newsStatus.textContent = "ताज़ा खबरें — " + cards.length + " खबरें";
+    }
+  } catch (error) {
+    newsGrid.textContent =
+      "News abhi load nahi ho paayi. Baad mein try karein.";
+
+    if (newsStatus) {
+      newsStatus.textContent = "News load karne mein samasya aayi.";
+    }
+
+    console.error("Search India news error:", error);
+  } finally {
+    if (refreshNewsBtn) refreshNewsBtn.disabled = false;
   }
+}
+
+if (refreshNewsBtn) {
+  refreshNewsBtn.addEventListener("click", loadNews);
 }
 
 // ========================================
@@ -581,7 +887,9 @@ async function loadNews() {
 document.querySelectorAll("[data-search]").forEach((button) => {
   button.addEventListener("click", () => {
     const query = button.getAttribute("data-search") || "";
+
     if (searchInput) searchInput.value = query;
+
     performSearch(query);
   });
 });
@@ -603,3 +911,4 @@ if (searchInput) {
 }
 
 console.log("Search India app.js loaded successfully.");
+    
