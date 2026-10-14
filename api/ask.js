@@ -1,35 +1,39 @@
-const MODEL = "gemini-3.8-flash";
+
+const MODELS = [
+  "gemini-3.8-flash",
+  "gemini-3.6-flash",
+  "gemini-3.5-flash-lite",
+  "gemini-3.1-flash-lite"
+];
 
 const API_KEY =
   process.env.INDIAN_SEARCH_API_KEY ||
   process.env.SEARCH_INDIA_API_KEY ||
   process.env.GEMINI_API_KEY;
 
-const wait = (ms) =>
-  new Promise((resolve) => setTimeout(resolve, ms));
+async function requestGemini(model, parts) {
+  const url =
+    "https://generativelanguage.googleapis.com/v1beta/models/" +
+    model +
+    ":generateContent";
 
-async function requestGemini(url, options) {
-  let response;
-
-  for (let attempt = 0; attempt < 3; attempt++) {
-    try {
-      response = await fetch(url, options);
-
-      if (
-        ![429, 500, 502, 503, 504].includes(response.status)
-      ) {
-        return response;
+  return fetch(url, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      "x-goog-api-key": API_KEY
+    },
+    body: JSON.stringify({
+      contents: [{
+        role: "user",
+        parts
+      }],
+      generationConfig: {
+        temperature: 0.4,
+        maxOutputTokens: 1200
       }
-    } catch (error) {
-      if (attempt === 2) throw error;
-    }
-
-    if (attempt < 2) {
-      await wait(1000 * (2 ** attempt));
-    }
-  }
-
-  return response;
+    })
+  });
 }
 
 export default async function handler(req, res) {
@@ -53,9 +57,8 @@ export default async function handler(req, res) {
       body.question || body.query || body.prompt || ""
     ).trim();
 
-    const image = typeof body.image === "string"
-      ? body.image
-      : "";
+    const image =
+      typeof body.image === "string" ? body.image : "";
 
     if (!question && image) {
       question =
@@ -108,9 +111,10 @@ export default async function handler(req, res) {
         });
       }
 
-      const mimeType = match[1].toLowerCase() === "image/jpg"
-        ? "image/jpeg"
-        : match[1].toLowerCase();
+      const mimeType =
+        match[1].toLowerCase() === "image/jpg"
+          ? "image/jpeg"
+          : match[1].toLowerCase();
 
       const imageBase64 = match[2].replace(/\s/g, "");
       const estimatedBytes = Math.floor(
@@ -131,74 +135,96 @@ export default async function handler(req, res) {
       });
     }
 
-    const url =
-      "https://generativelanguage.googleapis.com/v1beta/models/" +
-      MODEL +
-      ":generateContent";
+    let lastStatus = 503;
+    let lastMessage = "No model returned an answer.";
 
-    const apiResponse = await requestGemini(url, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        "x-goog-api-key": API_KEY
-      },
-      body: JSON.stringify({
-        contents: [{
-          role: "user",
-          parts
-        }],
-        generationConfig: {
-          temperature: 0.4,
-          maxOutputTokens: 1200
+    for (const model of MODELS) {
+      let response;
+      let data = {};
+
+      try {
+        response = await requestGemini(model, parts);
+        data = await response.json().catch(() => ({}));
+      } catch (error) {
+        lastStatus = 503;
+        lastMessage = String(error?.message || error);
+
+        console.error("Gemini network error:", {
+          model,
+          message: lastMessage
+        });
+
+        // Network failure: try the next model.
+        continue;
+      }
+
+      if (!response.ok) {
+        lastStatus = response.status;
+        lastMessage =
+          data?.error?.message || "Unknown Gemini API error.";
+
+        console.error("Gemini model failed:", {
+          model,
+          status: response.status,
+          message: lastMessage
+        });
+
+        // Try the next model for quota, temporary service,
+        // unavailable-model, or model-access errors.
+        if (
+          [404, 429, 500, 502, 503, 504].includes(response.status)
+        ) {
+          continue;
         }
-      })
-    });
 
-    const data = await apiResponse.json().catch(() => ({}));
+        // Other errors may affect every model, so stop here.
+        return res.status(502).json({
+          error: "Gemini request failed. Check Vercel Runtime Logs."
+        });
+      }
 
-    if (!apiResponse.ok) {
-      console.error("Gemini API error:", {
-        status: apiResponse.status,
-        model: MODEL,
-        message: data?.error?.message || "No provider message"
-      });
+      const answer = (
+        data?.candidates?.[0]?.content?.parts || []
+      )
+        .map((part) => part.text || "")
+        .join("\n")
+        .trim();
 
-      const temporary = [429, 500, 502, 503, 504]
-        .includes(apiResponse.status);
+      if (!answer) {
+        lastStatus = 502;
+        lastMessage = "The model returned no text.";
 
-      return res.status(temporary ? 503 : 502).json({
-        error: temporary
-          ? "Gemini is temporarily busy. Please try again shortly."
-          : "Gemini API error. Check Vercel Runtime Logs."
-      });
-    }
+        console.error("Gemini returned no text:", {
+          model,
+          finishReason: data?.candidates?.[0]?.finishReason
+        });
 
-    const answer = (
-      data?.candidates?.[0]?.content?.parts || []
-    )
-      .map((part) => part.text || "")
-      .join("\n")
-      .trim();
+        continue;
+      }
 
-    if (!answer) {
-      console.error("Gemini returned no text:", {
-        model: MODEL,
-        finishReason: data?.candidates?.[0]?.finishReason
-      });
-
-      return res.status(502).json({
-        error: "AI returned no answer. Please try again."
+      // First successful model ends the fallback loop.
+      return res.status(200).json({
+        success: true,
+        answer,
+        source: "Search India AI",
+        model,
+        currentDate: currentDateTime,
+        timezone
       });
     }
 
-    return res.status(200).json({
-      success: true,
-      answer,
-      source: "Search India AI",
-      model: MODEL,
-      currentDate: currentDateTime,
-      timezone
+    console.error("All Gemini fallback models failed:", {
+      models: MODELS,
+      lastStatus,
+      lastMessage
     });
+
+    return res.status(503).json({
+      error:
+        "AI is temporarily unavailable or its free quota is exhausted. " +
+        "Please try again later. Web search can still work."
+    });
+
   } catch (error) {
     console.error("Search India API error:", error);
 
@@ -206,6 +232,4 @@ export default async function handler(req, res) {
       error: "AI request failed. Check Vercel Runtime Logs."
     });
   }
-}  
-
-            
+          }
