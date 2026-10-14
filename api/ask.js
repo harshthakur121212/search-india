@@ -1,13 +1,12 @@
-
-const MODELS = [
+const GEMINI_MODELS = [
   "gemini-3.8-flash",
   "gemini-3.6-flash",
   "gemini-3.5-flash-lite",
   "gemini-3.1-flash-lite"
 ];
 
-const API_KEY =
-  process.env.INDIAN_SEARCH_API_KEY;
+const GEMINI_API_KEY = process.env.INDIAN_SEARCH_API_KEY;
+const GROQ_API_KEY = process.env.SEARCH_HARSH_API_KEY;
 
 async function requestGemini(model, parts) {
   const url =
@@ -19,19 +18,64 @@ async function requestGemini(model, parts) {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
-      "x-goog-api-key": API_KEY
+      "x-goog-api-key": GEMINI_API_KEY
     },
     body: JSON.stringify({
-      contents: [{
-        role: "user",
-        parts
-      }],
+      contents: [{ role: "user", parts }],
       generationConfig: {
         temperature: 0.4,
         maxOutputTokens: 1200
       }
     })
   });
+}
+
+async function requestGroq(question) {
+  const response = await fetch(
+    "https://api.groq.com/openai/v1/chat/completions",
+    {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: "Bearer " + GROQ_API_KEY
+      },
+      body: JSON.stringify({
+        model: "llama-3.3-70b-versatile",
+        messages: [
+          {
+            role: "system",
+            content:
+              "You are Search India AI. Answer accurately and clearly. " +
+              "Reply in the user's language, including Hindi or Hinglish. " +
+              "Do not invent facts. State uncertainty when needed."
+          },
+          { role: "user", content: question }
+        ],
+        temperature: 0.4,
+        max_tokens: 1200
+      })
+    }
+  );
+
+  const data = await response.json().catch(() => ({}));
+
+  if (!response.ok) {
+    console.error("Groq API error:", {
+      status: response.status,
+      message: data?.error?.message || "Unknown Groq error"
+    });
+    return null;
+  }
+
+  const answer =
+    data?.choices?.[0]?.message?.content?.trim();
+
+  if (!answer) return null;
+
+  return {
+    answer,
+    model: data?.model || "llama-3.3-70b-versatile"
+  };
 }
 
 export default async function handler(req, res) {
@@ -42,9 +86,9 @@ export default async function handler(req, res) {
     });
   }
 
-  if (!API_KEY) {
+  if (!GEMINI_API_KEY && !GROQ_API_KEY) {
     return res.status(500).json({
-      error: "Gemini API key missing. Check Vercel Environment Variables."
+      error: "AI API key missing. Check Vercel Environment Variables."
     });
   }
 
@@ -89,14 +133,14 @@ export default async function handler(req, res) {
       timeStyle: "long"
     }).format(new Date());
 
-    const parts = [{
-      text:
-        "You are Search India AI. Answer accurately and clearly. " +
-        "Reply in the user's language, including Hindi or Hinglish when appropriate. " +
-        "Do not invent facts; state uncertainty when needed.\n" +
-        "Current date and time: " + currentDateTime + "\n" +
-        "Question: " + question
-    }];
+    const prompt =
+      "You are Search India AI. Answer accurately and clearly. " +
+      "Reply in the user's language, including Hindi or Hinglish when appropriate. " +
+      "Do not invent facts; state uncertainty when needed.\n" +
+      "Current date and time: " + currentDateTime + "\n" +
+      "Question: " + question;
+
+    const parts = [{ text: prompt }];
 
     if (image) {
       const match = image.match(
@@ -115,11 +159,8 @@ export default async function handler(req, res) {
           : match[1].toLowerCase();
 
       const imageBase64 = match[2].replace(/\s/g, "");
-      const estimatedBytes = Math.floor(
-        imageBase64.length * 3 / 4
-      );
 
-      if (estimatedBytes > 4 * 1024 * 1024) {
+      if (Math.floor(imageBase64.length * 3 / 4) > 4 * 1024 * 1024) {
         return res.status(413).json({
           error: "Image is too large. Please choose an image under 4 MB."
         });
@@ -133,96 +174,81 @@ export default async function handler(req, res) {
       });
     }
 
-    let lastStatus = 503;
-    let lastMessage = "No model returned an answer.";
+    // Try Gemini models first.
+    if (GEMINI_API_KEY) {
+      for (const model of GEMINI_MODELS) {
+        try {
+          const response = await requestGemini(model, parts);
+          const data = await response.json().catch(() => ({}));
 
-    for (const model of MODELS) {
-      let response;
-      let data = {};
+          if (!response.ok) {
+            console.error("Gemini model failed:", {
+              model,
+              status: response.status,
+              message: data?.error?.message || "Unknown error"
+            });
 
-      try {
-        response = await requestGemini(model, parts);
-        data = await response.json().catch(() => ({}));
-      } catch (error) {
-        lastStatus = 503;
-        lastMessage = String(error?.message || error);
+            if (
+              [400, 404, 429, 500, 502, 503, 504].includes(
+                response.status
+              )
+            ) {
+              continue;
+            }
 
-        console.error("Gemini network error:", {
-          model,
-          message: lastMessage
-        });
+            break;
+          }
 
-        // Network failure: try the next model.
-        continue;
-      }
+          const answer = (
+            data?.candidates?.[0]?.content?.parts || []
+          )
+            .map((part) => part.text || "")
+            .join("\n")
+            .trim();
 
-      if (!response.ok) {
-        lastStatus = response.status;
-        lastMessage =
-          data?.error?.message || "Unknown Gemini API error.";
+          if (!answer) continue;
 
-        console.error("Gemini model failed:", {
-          model,
-          status: response.status,
-          message: lastMessage
-        });
-
-        // Try the next model for quota, temporary service,
-        // unavailable-model, or model-access errors.
-        if (
-          [404, 429, 500, 502, 503, 504].includes(response.status)
-        ) {
-          continue;
+          return res.status(200).json({
+            success: true,
+            answer,
+            source: "Search India AI",
+            model,
+            currentDate: currentDateTime,
+            timezone
+          });
+        } catch (error) {
+          console.error("Gemini request failed:", {
+            model,
+            message: String(error?.message || error)
+          });
         }
-
-        // Other errors may affect every model, so stop here.
-        return res.status(502).json({
-          error: "Gemini request failed. Check Vercel Runtime Logs."
-        });
       }
-
-      const answer = (
-        data?.candidates?.[0]?.content?.parts || []
-      )
-        .map((part) => part.text || "")
-        .join("\n")
-        .trim();
-
-      if (!answer) {
-        lastStatus = 502;
-        lastMessage = "The model returned no text.";
-
-        console.error("Gemini returned no text:", {
-          model,
-          finishReason: data?.candidates?.[0]?.finishReason
-        });
-
-        continue;
-      }
-
-      // First successful model ends the fallback loop.
-      return res.status(200).json({
-        success: true,
-        answer,
-        source: "Search India AI",
-        model,
-        currentDate: currentDateTime,
-        timezone
-      });
     }
 
-    console.error("All Gemini fallback models failed:", {
-      models: MODELS,
-      lastStatus,
-      lastMessage
-    });
+    // If Gemini models fail, try Groq for text questions.
+    // Groq chat completion here does not accept image data.
+    if (GROQ_API_KEY && !image) {
+      const result = await requestGroq(
+        question + "\nCurrent date and time: " + currentDateTime
+      );
+
+      if (result) {
+        return res.status(200).json({
+          success: true,
+          answer: result.answer,
+          source: "Search India AI",
+          model: result.model,
+          currentDate: currentDateTime,
+          timezone
+        });
+      }
+    }
 
     return res.status(503).json({
       error:
-        "AI is temporarily unavailable or its free quota is exhausted. " +
+        "AI is temporarily unavailable or its quota is exhausted. " +
         "Please try again later. Web search can still work."
     });
-
   } catch (error) {
     console.error("Search India API error:", error);
 
@@ -231,3 +257,4 @@ export default async function handler(req, res) {
     });
   }
           }
+                        
