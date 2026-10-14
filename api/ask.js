@@ -1,122 +1,124 @@
-const MODEL = "gemini-3.5-flash";
+const MODEL = "gemini-3.8-flash";
 
 const API_KEY =
   process.env.INDIAN_SEARCH_API_KEY ||
   process.env.SEARCH_INDIA_API_KEY ||
   process.env.GEMINI_API_KEY;
 
-const sleep = (ms) =>
+const wait = (ms) =>
   new Promise((resolve) => setTimeout(resolve, ms));
 
-async function fetchGeminiWithRetry(url, options) {
+async function requestGemini(url, options) {
   let response;
 
   for (let attempt = 0; attempt < 3; attempt++) {
     try {
       response = await fetch(url, options);
 
-      // Retry only temporary server/rate-limit errors.
       if (
         ![429, 500, 502, 503, 504].includes(response.status)
       ) {
         return response;
       }
-
-      if (attempt < 2) {
-        await sleep(1000 * (2 ** attempt));
-      }
     } catch (error) {
-      if (attempt === 2) {
-        throw error;
-      }
+      if (attempt === 2) throw error;
+    }
 
-      await sleep(1000 * (2 ** attempt));
+    if (attempt < 2) {
+      await wait(1000 * (2 ** attempt));
     }
   }
 
   return response;
 }
 
-function sendJson(res, status, data) {
-  return res.status(status).json(data);
-}
-
 export default async function handler(req, res) {
   if (req.method !== "POST") {
     res.setHeader("Allow", "POST");
-    return sendJson(res, 405, {
+    return res.status(405).json({
       error: "Only POST requests are allowed."
     });
   }
 
   if (!API_KEY) {
-    return sendJson(res, 500, {
-      error:
-        "API key missing. Add INDIAN_SEARCH_API_KEY or SEARCH_INDIA_API_KEY in Vercel Environment Variables."
+    return res.status(500).json({
+      error: "Gemini API key missing. Check Vercel Environment Variables."
     });
   }
 
   try {
     const body = req.body || {};
 
-    let question =
-      typeof body.question === "string"
-        ? body.question.trim()
-        : "";
+    let question = String(
+      body.question || body.query || body.prompt || ""
+    ).trim();
 
-    const imageData =
-      typeof body.image === "string"
-        ? body.image
-        : "";
+    const image = typeof body.image === "string"
+      ? body.image
+      : "";
 
-    // Allow image-only questions.
-    if (!question && imageData) {
+    if (!question && image) {
       question =
-        "Describe this image and answer the question it raises. Reply in Hindi unless the image or question requires another language.";
+        "Describe this image and answer helpfully in Hindi.";
     }
 
     if (!question) {
-      return sendJson(res, 400, {
+      return res.status(400).json({
         error: "Please enter a question."
       });
     }
 
-    const parts = [
-      {
-        text:
-          "You are the AI assistant for Search India. " +
-          "Answer accurately, clearly, and helpfully. " +
-          "Use Hindi when the user writes in Hindi or Hinglish; " +
-          "otherwise follow the user's language. " +
-          "Do not invent facts. If uncertain, say so. " +
-          "For image questions, describe only what is reasonably visible. " +
-          "Question: " +
-          question
-      }
-    ];
+    let timezone = "Asia/Kolkata";
+    const requestedTimezone = body.timeZone || body.timezone;
 
-    if (imageData) {
-      const match = imageData.match(
-        /^data:(image\/(?:jpeg|jpg|png|webp|heic|heif));base64,([A-Za-z0-9+/=\s]+)$/i
+    if (typeof requestedTimezone === "string") {
+      try {
+        new Intl.DateTimeFormat("en-IN", {
+          timeZone: requestedTimezone
+        });
+        timezone = requestedTimezone;
+      } catch {
+        timezone = "Asia/Kolkata";
+      }
+    }
+
+    const currentDateTime = new Intl.DateTimeFormat("en-IN", {
+      timeZone: timezone,
+      dateStyle: "full",
+      timeStyle: "long"
+    }).format(new Date());
+
+    const parts = [{
+      text:
+        "You are Search India AI. Answer accurately and clearly. " +
+        "Reply in the user's language, including Hindi or Hinglish when appropriate. " +
+        "Do not invent facts; state uncertainty when needed.\n" +
+        "Current date and time: " + currentDateTime + "\n" +
+        "Question: " + question
+    }];
+
+    if (image) {
+      const match = image.match(
+        /^data:(image\/(?:jpeg|jpg|png|webp));base64,([A-Za-z0-9+/=\s]+)$/i
       );
 
       if (!match) {
-        return sendJson(res, 400, {
-          error:
-            "Unsupported image format. Please select a JPG, PNG, or WebP image."
+        return res.status(400).json({
+          error: "Unsupported image. Please choose JPG, PNG, or WebP."
         });
       }
 
-      const mimeType = match[1].toLowerCase();
-      const base64Data = match[2].replace(/\s/g, "");
+      const mimeType = match[1].toLowerCase() === "image/jpg"
+        ? "image/jpeg"
+        : match[1].toLowerCase();
 
-      // Limit decoded image size to approximately 4 MB.
+      const imageBase64 = match[2].replace(/\s/g, "");
       const estimatedBytes = Math.floor(
-        (base64Data.length * 3) / 4
+        imageBase64.length * 3 / 4
       );
 
       if (estimatedBytes > 4 * 1024 * 1024) {
-        return sendJson(res, 413, {
+        return res.status(413).json({
           error: "Image is too large. Please choose an image under 4 MB."
         });
       }
@@ -124,7 +126,7 @@ export default async function handler(req, res) {
       parts.push({
         inline_data: {
           mime_type: mimeType,
-          data: base64Data
+          data: imageBase64
         }
       });
     }
@@ -132,21 +134,19 @@ export default async function handler(req, res) {
     const url =
       "https://generativelanguage.googleapis.com/v1beta/models/" +
       MODEL +
-      ":generateContent?key=" +
-      encodeURIComponent(API_KEY);
+      ":generateContent";
 
-    const apiResponse = await fetchGeminiWithRetry(url, {
+    const apiResponse = await requestGemini(url, {
       method: "POST",
       headers: {
-        "Content-Type": "application/json"
+        "Content-Type": "application/json",
+        "x-goog-api-key": API_KEY
       },
       body: JSON.stringify({
-        contents: [
-          {
-            role: "user",
-            parts
-          }
-        ],
+        contents: [{
+          role: "user",
+          parts
+        }],
         generationConfig: {
           temperature: 0.4,
           maxOutputTokens: 1200
@@ -157,36 +157,19 @@ export default async function handler(req, res) {
     const data = await apiResponse.json().catch(() => ({}));
 
     if (!apiResponse.ok) {
-      // Detailed provider errors are kept in Vercel logs.
       console.error("Gemini API error:", {
         status: apiResponse.status,
-        message: data?.error?.message || "No provider error message",
-        model: MODEL
+        model: MODEL,
+        message: data?.error?.message || "No provider message"
       });
 
-      if ([429, 500, 502, 503, 504].includes(apiResponse.status)) {
-        return sendJson(res, 503, {
-          error:
-            "AI service is temporarily busy. Please try again in a little while."
-        });
-      }
+      const temporary = [429, 500, 502, 503, 504]
+        .includes(apiResponse.status);
 
-      if (apiResponse.status === 401 || apiResponse.status === 403) {
-        return sendJson(res, 502, {
-          error:
-            "AI provider rejected the API key. Check the key and its permissions in Vercel."
-        });
-      }
-
-      if (apiResponse.status === 404) {
-        return sendJson(res, 502, {
-          error:
-            "The configured Gemini model is unavailable. Check the model name and API access."
-        });
-      }
-
-      return sendJson(res, 502, {
-        error: "AI provider error. Check Vercel Runtime Logs."
+      return res.status(temporary ? 503 : 502).json({
+        error: temporary
+          ? "Gemini is temporarily busy. Please try again shortly."
+          : "Gemini API error. Check Vercel Runtime Logs."
       });
     }
 
@@ -198,27 +181,31 @@ export default async function handler(req, res) {
       .trim();
 
     if (!answer) {
-      console.error(
-        "Gemini returned no text:",
-        JSON.stringify(data).slice(0, 1500)
-      );
+      console.error("Gemini returned no text:", {
+        model: MODEL,
+        finishReason: data?.candidates?.[0]?.finishReason
+      });
 
-      return sendJson(res, 502, {
-        error:
-          "AI did not return an answer. Please try asking in a different way."
+      return res.status(502).json({
+        error: "AI returned no answer. Please try again."
       });
     }
 
-    return sendJson(res, 200, {
+    return res.status(200).json({
+      success: true,
       answer,
-      model: MODEL
+      source: "Search India AI",
+      model: MODEL,
+      currentDate: currentDateTime,
+      timezone
     });
   } catch (error) {
-    console.error("Search India AI route error:", error);
+    console.error("Search India API error:", error);
 
-    return sendJson(res, 500, {
-      error:
-        "The AI request could not be completed. Please try again."
+    return res.status(500).json({
+      error: "AI request failed. Check Vercel Runtime Logs."
     });
   }
-  }
+}  
+
+            
