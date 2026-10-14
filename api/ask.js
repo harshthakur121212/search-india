@@ -7,9 +7,7 @@ const MODELS = [
 ];
 
 const API_KEY =
-  process.env.INDIAN_SEARCH_API_KEY ||
-  process.env.SEARCH_INDIA_API_KEY ||
-  process.env.GEMINI_API_KEY;
+  process.env.INDIAN_SEARCH_API_KEY;
 
 async function requestGemini(model, parts) {
   const url =
