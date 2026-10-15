@@ -1,260 +1,214 @@
-const GEMINI_MODELS = [
-  "gemini-3.8-flash",
-  "gemini-3.6-flash",
-  "gemini-3.5-flash-lite",
-  "gemini-3.1-flash-lite"
-];
 
-const GEMINI_API_KEY = process.env.INDIAN_SEARCH_API_KEY;
 const GROQ_API_KEY = process.env.SEARCH_HARSH_API_KEY;
+const GROQ_MODEL = "qwen/qwen3.8-27b";
 
-async function requestGemini(model, parts) {
-  const url =
-    "https://generativelanguage.googleapis.com/v1beta/models/" +
-    model +
-    ":generateContent";
+module.exports = async function handler(req, res) {
+  res.setHeader("Cache-Control", "no-store");
 
-  return fetch(url, {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      "x-goog-api-key": GEMINI_API_KEY
-    },
-    body: JSON.stringify({
-      contents: [{ role: "user", parts }],
-      generationConfig: {
-        temperature: 0.4,
-        maxOutputTokens: 1200
-      }
-    })
-  });
-}
-
-async function requestGroq(question) {
-  const response = await fetch(
-    "https://api.groq.com/openai/v1/chat/completions",
-    {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: "Bearer " + GROQ_API_KEY
-      },
-      body: JSON.stringify({
-        model: "llama-3.3-70b-versatile",
-        messages: [
-          {
-            role: "system",
-            content:
-              "You are Search India AI. Answer accurately and clearly. " +
-              "Reply in the user's language, including Hindi or Hinglish. " +
-              "Do not invent facts. State uncertainty when needed."
-          },
-          { role: "user", content: question }
-        ],
-        temperature: 0.4,
-        max_tokens: 1200
-      })
-    }
-  );
-
-  const data = await response.json().catch(() => ({}));
-
-  if (!response.ok) {
-    console.error("Groq API error:", {
-      status: response.status,
-      message: data?.error?.message || "Unknown Groq error"
-    });
-    return null;
-  }
-
-  const answer =
-    data?.choices?.[0]?.message?.content?.trim();
-
-  if (!answer) return null;
-
-  return {
-    answer,
-    model: data?.model || "llama-3.3-70b-versatile"
-  };
-}
-
-export default async function handler(req, res) {
   if (req.method !== "POST") {
     res.setHeader("Allow", "POST");
     return res.status(405).json({
+      success: false,
       error: "Only POST requests are allowed."
     });
   }
 
-  if (!GEMINI_API_KEY && !GROQ_API_KEY) {
+  if (!GROQ_API_KEY) {
     return res.status(500).json({
-      error: "AI API key missing. Check Vercel Environment Variables."
+      success: false,
+      error: "SEARCH_HARSH_API_KEY Vercel Environment Variables mein set nahi hai."
     });
   }
 
   try {
-    const body = req.body || {};
+    let body = req.body;
 
-    let question = String(
+    if (typeof body === "string") {
+      try {
+        body = JSON.parse(body);
+      } catch {
+        return res.status(400).json({
+          success: false,
+          error: "Invalid JSON request."
+        });
+      }
+    }
+
+    body = body || {};
+
+    const question = String(
       body.question || body.query || body.prompt || ""
     ).trim();
 
-    const image =
-      typeof body.image === "string" ? body.image : "";
+    const image = body.image || null;
 
-    if (!question && image) {
-      question =
-        "Describe this image and answer helpfully in Hindi.";
-    }
-
-    if (!question) {
+    if (!question && !image) {
       return res.status(400).json({
-        error: "Please enter a question."
+        success: false,
+        error: "Please enter a question or select an image."
       });
     }
 
-    let timezone = "Asia/Kolkata";
-    const requestedTimezone = body.timeZone || body.timezone;
-
-    if (typeof requestedTimezone === "string") {
-      try {
-        new Intl.DateTimeFormat("en-IN", {
-          timeZone: requestedTimezone
-        });
-        timezone = requestedTimezone;
-      } catch {
-        timezone = "Asia/Kolkata";
-      }
+    if (question.length > 10000) {
+      return res.status(400).json({
+        success: false,
+        error: "Question bahut lamba hai. Chhota question likhein."
+      });
     }
 
-    const currentDateTime = new Intl.DateTimeFormat("en-IN", {
+    const timezoneCandidate =
+      body.timeZone || body.timezone || "Asia/Kolkata";
+
+    let timezone = "Asia/Kolkata";
+
+    try {
+      Intl.DateTimeFormat("en-US", {
+        timeZone: timezoneCandidate
+      });
+      timezone = timezoneCandidate;
+    } catch {
+      timezone = "Asia/Kolkata";
+    }
+
+    const currentDateTime = new Date().toLocaleString("en-IN", {
       timeZone: timezone,
       dateStyle: "full",
       timeStyle: "long"
-    }).format(new Date());
+    });
 
-    const prompt =
-      "You are Search India AI. Answer accurately and clearly. " +
-      "Reply in the user's language, including Hindi or Hinglish when appropriate. " +
-      "Do not invent facts; state uncertainty when needed.\n" +
-      "Current date and time: " + currentDateTime + "\n" +
-      "Question: " + question;
+    const messages = [
+      {
+        role: "system",
+        content:
+          "You are Search India AI, a helpful and accurate assistant. " +
+          "Answer clearly in the language used by the user. " +
+          "For Indian topics, provide relevant Indian context. " +
+          "Do not invent facts, sources, links, or current information. " +
+          "If uncertain, clearly say so. " +
+          "Current date and time for this request: " +
+          currentDateTime
+      }
+    ];
 
-    const parts = [{ text: prompt }];
+    const userContent = [];
 
     if (image) {
-      const match = image.match(
-        /^data:(image\/(?:jpeg|jpg|png|webp));base64,([A-Za-z0-9+/=\s]+)$/i
+      if (typeof image !== "string") {
+        return res.status(400).json({
+          success: false,
+          error: "Image format is invalid."
+        });
+      }
+
+      const imageMatch = image.match(
+        /^data:image\/(jpeg|jpg|png|webp);base64,([A-Za-z0-9+/=]+)$/
       );
 
-      if (!match) {
+      if (!imageMatch) {
         return res.status(400).json({
-          error: "Unsupported image. Please choose JPG, PNG, or WebP."
+          success: false,
+          error: "JPG, PNG ya WEBP image select karein."
         });
       }
 
-      const mimeType =
-        match[1].toLowerCase() === "image/jpg"
-          ? "image/jpeg"
-          : match[1].toLowerCase();
+      const imageBytes = Buffer.from(imageMatch[2], "base64");
 
-      const imageBase64 = match[2].replace(/\s/g, "");
-
-      if (Math.floor(imageBase64.length * 3 / 4) > 4 * 1024 * 1024) {
+      if (imageBytes.length > 4 * 1024 * 1024) {
         return res.status(413).json({
-          error: "Image is too large. Please choose an image under 4 MB."
+          success: false,
+          error: "Image 4 MB se chhoti honi chahiye."
         });
       }
 
-      parts.push({
-        inline_data: {
-          mime_type: mimeType,
-          data: imageBase64
+      userContent.push({
+        type: "image_url",
+        image_url: {
+          url: image
         }
       });
     }
 
-    // Try Gemini models first.
-    if (GEMINI_API_KEY) {
-      for (const model of GEMINI_MODELS) {
-        try {
-          const response = await requestGemini(model, parts);
-          const data = await response.json().catch(() => ({}));
+    userContent.push({
+      type: "text",
+      text: question || "Is image ko dhyan se dekho aur samjhao."
+    });
 
-          if (!response.ok) {
-            console.error("Gemini model failed:", {
-              model,
-              status: response.status,
-              message: data?.error?.message || "Unknown error"
-            });
+    messages.push({
+      role: "user",
+      content: userContent
+    });
 
-            if (
-              [400, 404, 429, 500, 502, 503, 504].includes(
-                response.status
-              )
-            ) {
-              continue;
-            }
-
-            break;
-          }
-
-          const answer = (
-            data?.candidates?.[0]?.content?.parts || []
-          )
-            .map((part) => part.text || "")
-            .join("\n")
-            .trim();
-
-          if (!answer) continue;
-
-          return res.status(200).json({
-            success: true,
-            answer,
-            source: "Search India AI",
-            model,
-            currentDate: currentDateTime,
-            timezone
-          });
-        } catch (error) {
-          console.error("Gemini request failed:", {
-            model,
-            message: String(error?.message || error)
-          });
-        }
+    const response = await fetch(
+      "https://api.groq.com/openai/v1/chat/completions",
+      {
+        method: "POST",
+        headers: {
+          "Authorization": `Bearer ${GROQ_API_KEY}`,
+          "Content-Type": "application/json"
+        },
+        body: JSON.stringify({
+          model: GROQ_MODEL,
+          messages,
+          temperature: 0.3,
+          max_tokens: 1500
+        })
       }
-    }
+    );
 
-    // If Gemini models fail, try Groq for text questions.
-    // Groq chat completion here does not accept image data.
-    if (GROQ_API_KEY && !image) {
-      const result = await requestGroq(
-        question + "\nCurrent date and time: " + currentDateTime
+    const result = await response.json().catch(() => ({}));
+
+    if (!response.ok) {
+      console.error(
+        "Groq API error:",
+        response.status,
+        result.error?.message || "Unknown provider error"
       );
 
-      if (result) {
-        return res.status(200).json({
-          success: true,
-          answer: result.answer,
-          source: "Search India AI",
-          model: result.model,
-          currentDate: currentDateTime,
-          timezone
+      if (response.status === 401 || response.status === 403) {
+        return res.status(502).json({
+          success: false,
+          error: "Groq API key invalid hai ya access allowed nahi hai."
         });
       }
+
+      if (response.status === 429) {
+        return res.status(503).json({
+          success: false,
+          error: "Groq rate limit ya quota reached hai. Baad mein try karein."
+        });
+      }
+
+      return res.status(502).json({
+        success: false,
+        error: "Groq AI service se response nahi mila.",
+        details: result.error?.message || "Provider request failed."
+      });
     }
 
-    return res.status(503).json({
-      error:
-        "AI is temporarily unavailable or its quota is exhausted. " +
-        "Please try again later. Web search can still work."
+    const answer = result.choices?.[0]?.message?.content;
+
+    if (!answer || typeof answer !== "string") {
+      return res.status(502).json({
+        success: false,
+        error: "AI ne khaali response diya. Dobara try karein."
+      });
+    }
+
+    return res.status(200).json({
+      success: true,
+      answer: answer.trim(),
+      source: "Search India AI",
+      model: GROQ_MODEL,
+      currentDate: currentDateTime,
+      timezone
     });
   } catch (error) {
-    console.error("Search India API error:", error);
+    console.error("Search India AI error:", error.message);
 
     return res.status(500).json({
-      error: "AI request failed. Check Vercel Runtime Logs."
+      success: false,
+      error: "Server mein problem aayi. Vercel Runtime Logs check karein."
     });
   }
-          }
-                        
+};
+      
