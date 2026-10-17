@@ -50,13 +50,8 @@
         <button class="search-btn" type="submit">🔍</button>
       </form>
 
-      <!-- Gallery से फोटो चुनने वाला input -->
-      <input
-        id="imageInput"
-        type="file"
-        accept="image/*"
-        hidden
-      >
+      <input id="cameraInput" type="file" accept="image/*" capture="environment" hidden>
+<input id="imageInput" type="file" accept="image/*" hidden>
 
       <div id="imagePreviewBox" class="image-preview hidden">
         <img id="imagePreview" alt="Question photo">
