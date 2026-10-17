@@ -170,8 +170,20 @@
       <span class="developer-brand">🇮🇳 Search India</span>
     </div>
   </div>
+
 </section>
+
+<script>
+  if ("serviceWorker" in navigator) {
+    window.addEventListener("load", () => {
+      navigator.serviceWorker.register("/sw.js")
+        .catch((error) => console.error("Service Worker error:", error));
+    });
+  }
+</script>
+
 </body>
 </html>
+
 
   
