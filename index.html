@@ -1,3 +1,4 @@
+
 <!DOCTYPE html>
 <html lang="hi">
 <head>
@@ -13,8 +14,8 @@
   <header class="topbar">
     <button id="homeBtn" class="home-btn" type="button">🏠 Home</button>
     <div class="logo">
-  <img src="/logo.png" alt="Search India Logo" class="site-logo">
-  <span>Search India</span>
+      <img src="/logo.png" alt="Search India Logo" class="site-logo">
+      <span>Search India</span>
     </div>
     <div class="tagline">Made for India</div>
 
@@ -28,14 +29,8 @@
         <button id="openHistoryBtn" type="button">🕘 Search history</button>
         <button id="delete15Btn" type="button">🗑️ Delete last 15 minutes</button>
         <button id="deleteAllBtn" type="button">❌ Delete all search history</button>
-        
-<p id="accountUserEmail" class="account-user-email">
-  Guest user
-</p>
-
-<button id="logoutBtn" type="button" class="hidden">
-  Logout
-</button>
+        <p id="accountUserEmail" class="account-user-email">Guest user</p>
+        <button id="logoutBtn" type="button" class="hidden">Logout</button>
       </div>
     </div>
   </header>
@@ -51,11 +46,17 @@
         <button id="micBtn" class="tool-btn" type="button" title="Voice Search">🎤</button>
         <input id="searchInput" type="search"
           placeholder="भारत में कुछ खोजें..." autocomplete="off">
-        <button id="cameraBtn" class="tool-btn" type="button" title="Camera Search">📷</button>
+        <button id="cameraBtn" class="tool-btn" type="button" title="Photo Search">📷</button>
         <button class="search-btn" type="submit">🔍</button>
       </form>
 
-      <input id="imageInput" type="file" accept="image/*" capture="environment" hidden>
+      <!-- Gallery से फोटो चुनने वाला input -->
+      <input
+        id="imageInput"
+        type="file"
+        accept="image/*"
+        hidden
+      >
 
       <div id="imagePreviewBox" class="image-preview hidden">
         <img id="imagePreview" alt="Question photo">
@@ -75,7 +76,7 @@
     <section id="answerBox" class="answer-section">
       <div class="section-title"><span>🤖</span><h2>Search India AI</h2></div>
       <div class="ai-card">
-        <div class="ai-heading">✨ जग्गा जासूस की खोज </div>
+        <div class="ai-heading">✨ जग्गा जासूस की खोज</div>
         <div id="directAnswer" class="ai-answer">यहाँ आपके सवाल का AI answer दिखाई देगा।</div>
         <div id="answerSource" class="answer-source"></div>
       </div>
@@ -88,23 +89,17 @@
       </div>
     </section>
 
-    
-<section class="news-section" id="newsSection">
-  <div class="section-title">
-    <span>📰</span>
-    <h2>Live News — ताज़ा खबरें</h2>
-    <button id="refreshNewsBtn" type="button">🔄 Refresh</button>
-  </div>
-
-  <p id="newsStatus" class="news-status">
-    ताज़ा खबरें लोड हो रही हैं...
-  </p>
-
-  <div id="newsGrid" class="news-grid">
-    <div class="empty">📰 खबरें लोड हो रही हैं...</div>
-  </div>
-</section>
-    
+    <section class="news-section" id="newsSection">
+      <div class="section-title">
+        <span>📰</span>
+        <h2>Live News — ताज़ा खबरें</h2>
+        <button id="refreshNewsBtn" type="button">🔄 Refresh</button>
+      </div>
+      <p id="newsStatus" class="news-status">ताज़ा खबरें लोड हो रही हैं...</p>
+      <div id="newsGrid" class="news-grid">
+        <div class="empty">📰 खबरें लोड हो रही हैं...</div>
+      </div>
+    </section>
 
     <section class="features-section">
       <h2>Search India की सुविधाएँ</h2>
@@ -112,7 +107,7 @@
         <div class="feature-card"><div>🌐</div><h3>Web Search</h3><p>पूरी web से results खोजें।</p></div>
         <div class="feature-card"><div>🤖</div><h3>AI Answers</h3><p>अपने सवाल का आसान AI answer पाएँ।</p></div>
         <div class="feature-card"><div>🎤</div><h3>Voice Search</h3><p>बोलकर search करें।</p></div>
-        <div class="feature-card"><div>📷</div><h3>Camera Search</h3><p>Question की photo लेकर answer पाएँ।</p></div>
+        <div class="feature-card"><div>📷</div><h3>Photo Search</h3><p>Camera से फोटो लें या Gallery से फोटो चुनें।</p></div>
       </div>
     </section>
   </main>
@@ -149,41 +144,34 @@
     <p class="footer-copy">© 2026 Search India 🇮🇳 — All Rights Reserved</p>
   </footer>
 
-  <script src="app.js"></script>
-  
-<section class="developer-section" id="about-developer">
-  <div class="developer-card">
-    <img
-      src="/IMG_20261015_211114.jpg"
-      alt="Harsh Thakur - Founder and Developer"
-      class="developer-photo"
-    />
-
-    <div class="developer-info">
-      <p class="developer-label">MEET THE CREATOR</p>
-      <h2>Harsh Thakur</h2>
-      <p class="developer-role">Founder &amp; Developer</p>
-      <p>
-        I built Search India to make information easier
-        to discover through one simple search platform.
-      </p>
-      <span class="developer-brand">🇮🇳 Search India</span>
+  <section class="developer-section" id="about-developer">
+    <div class="developer-card">
+      <img
+        src="/IMG_20261015_211114.jpg"
+        alt="Harsh Thakur - Founder and Developer"
+        class="developer-photo"
+      >
+      <div class="developer-info">
+        <p class="developer-label">MEET THE CREATOR</p>
+        <h2>Harsh Thakur</h2>
+        <p class="developer-role">Founder &amp; Developer</p>
+        <p>I built Search India to make information easier
+          to discover through one simple search platform.</p>
+        <span class="developer-brand">🇮🇳 Search India</span>
+      </div>
     </div>
-  </div>
+  </section>
 
-</section>
+  <script src="app.js"></script>
 
-<script>
-  if ("serviceWorker" in navigator) {
-    window.addEventListener("load", () => {
-      navigator.serviceWorker.register("/sw.js")
-        .catch((error) => console.error("Service Worker error:", error));
-    });
-  }
-</script>
-
+  <script>
+    if ("serviceWorker" in navigator) {
+      window.addEventListener("load", () => {
+        navigator.serviceWorker.register("/sw.js")
+          .catch((error) => console.error("Service Worker error:", error));
+      });
+    }
+  </script>
 </body>
-</html>
-
-
+          </html>
   
