@@ -4,169 +4,208 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Search India 🇮🇳</title>
-  <link rel="icon" type="image/png" href="/favicon.png">
-  <link rel="manifest" href="/manifest.json">
-  <meta name="google-adsense-account" content="ca-pub-5620229735702217">
+
+  <meta name="theme-color" content="#ffffff">
+  <meta name="description" content="Search India account login and signup">
+
+  <title>Login / Sign Up — Search India 🇮🇳</title>
+
   <link rel="stylesheet" href="style.css">
+
+  <style>
+    .auth-container {
+      width: min(100% - 32px, 420px);
+      margin: 40px auto;
+      padding: 24px;
+      border-radius: 16px;
+      background: var(--card-bg, #ffffff);
+      box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+    }
+
+    .auth-container h1,
+    .auth-container h2 {
+      text-align: center;
+    }
+
+    .auth-subtitle {
+      text-align: center;
+      color: #666;
+      margin-bottom: 24px;
+    }
+
+    .auth-form label {
+      display: block;
+      margin: 16px 0 6px;
+      font-weight: 600;
+    }
+
+    .auth-form input {
+      box-sizing: border-box;
+      width: 100%;
+      min-height: 46px;
+      padding: 12px;
+      border: 1px solid #ccc;
+      border-radius: 8px;
+      font-size: 16px;
+    }
+
+    .password-row {
+      display: flex;
+      gap: 8px;
+      align-items: center;
+    }
+
+    .password-row input {
+      flex: 1;
+      min-width: 0;
+    }
+
+    .password-toggle {
+      min-height: 44px;
+      padding: 8px 10px;
+      border: 1px solid #ccc;
+      border-radius: 8px;
+      background: #f5f5f5;
+      cursor: pointer;
+    }
+
+    .auth-actions {
+      display: grid;
+      gap: 12px;
+      margin-top: 22px;
+    }
+
+    .auth-actions button {
+      width: 100%;
+      min-height: 46px;
+      border-radius: 8px;
+      cursor: pointer;
+      font-size: 16px;
+    }
+
+    #loginBtn {
+      background: #1769e0;
+      color: #fff;
+      border: 0;
+    }
+
+    #signupBtn {
+      background: transparent;
+      color: #1769e0;
+      border: 1px solid #1769e0;
+    }
+
+    #authStatus {
+      margin-top: 18px;
+      overflow-wrap: anywhere;
+    }
+
+    .auth-back {
+      text-align: center;
+      margin-top: 22px;
+    }
+
+    .auth-back a {
+      color: #1769e0;
+    }
+
+    @media (max-width: 480px) {
+      .auth-container {
+        margin: 20px auto;
+        padding: 18px;
+      }
+    }
+  </style>
 </head>
+
 <body>
-  <header class="topbar">
-    <button id="homeBtn" class="home-btn" type="button">🏠 Home</button>
-    <div class="logo">
-      <img src="/logo.png" alt="Search India Logo" class="site-logo">
-      <span>Search India</span>
-    </div>
-    <div class="tagline">Made for India</div>
+  <main class="container auth-container">
 
-    <div class="account-area">
-      <button id="accountBtn" class="account-btn" type="button"
-        aria-label="Account menu" aria-expanded="false">👤</button>
+    <h1>🇮🇳 Search India</h1>
+    <h2 id="authHeading">Login / Sign up</h2>
 
-      <div id="accountMenu" class="account-menu hidden">
-        <button id="addAccountBtn" type="button">➕ Add account</button>
-        <button id="guestBtn" type="button">🔎 Use Search India without an account</button>
-        <button id="openHistoryBtn" type="button">🕘 Search history</button>
-        <button id="delete15Btn" type="button">🗑️ Delete last 15 minutes</button>
-        <button id="deleteAllBtn" type="button">❌ Delete all search history</button>
-        <p id="accountUserEmail" class="account-user-email">Guest user</p>
-        <button id="logoutBtn" type="button" class="hidden">Logout</button>
-      </div>
-    </div>
-  </header>
+    <p class="auth-subtitle">
+      अपने Search India account में प्रवेश करें
+    </p>
 
-  <main class="container" id="homeContent">
-    <section class="hero">
-      <div class="hero-logo">🇮🇳</div>
-      <h1>Search India</h1>
-      <p class="subtitle">भारत में कुछ भी खोजें</p>
-      <p class="features">Web Search • AI Answers • Voice • Camera</p>
+    <form id="authForm" class="auth-form">
 
-      <form id="searchForm" class="search-box">
-        <button id="micBtn" class="tool-btn" type="button" title="Voice Search">🎤</button>
-        <input id="searchInput" type="search"
-          placeholder="भारत में कुछ खोजें..." autocomplete="off">
-        <button id="cameraBtn" class="tool-btn" type="button" title="Photo Search">📷</button>
-        <button class="search-btn" type="submit">🔍</button>
-      </form>
+      <label for="email">Email</label>
+      <input
+        id="email"
+        name="email"
+        type="email"
+        required
+        autocomplete="email"
+        placeholder="अपना email लिखें"
+      >
 
-      <input id="cameraInput" type="file" accept="image/*" capture="environment" hidden>
-<input id="imageInput" type="file" accept="image/*" hidden>
+      <label for="password">Password</label>
 
-      <div id="imagePreviewBox" class="image-preview hidden">
-        <img id="imagePreview" alt="Question photo">
-        <button id="removeImageBtn" type="button">✕ Photo हटाएँ</button>
+      <div class="password-row">
+        <input
+          id="password"
+          name="password"
+          type="password"
+          required
+          minlength="6"
+          autocomplete="current-password"
+          placeholder="कम से कम 6 अक्षर"
+        >
+
+        <button
+          type="button"
+          id="togglePassword"
+          class="password-toggle"
+          aria-label="Password दिखाएँ"
+          aria-pressed="false"
+        >
+          दिखाएँ
+        </button>
       </div>
 
-      <div class="quick-search">
-        <button type="button" data-search="भारत के प्रधान मंत्री">🇮🇳 भारत के प्रधान मंत्री</button>
-        <button type="button" data-search="भारत का इतिहास">📚 भारत का इतिहास</button>
-        <button type="button" data-search="उत्तर प्रदेश">🏠 उत्तर प्रदेश</button>
-        <button type="button" data-search="भारत की राजधानी">🏛️ भारत की राजधानी</button>
-      </div>
-    </section>
+      <div class="auth-actions">
+        <button type="submit" id="loginBtn">
+          Login
+        </button>
 
-    <div id="searchStatus" class="status hidden"></div>
+        <button type="button" id="signupBtn">
+          Create account
+        </button>
+      </div>
 
-    <section id="answerBox" class="answer-section">
-      <div class="section-title"><span>🤖</span><h2>Search India AI</h2></div>
-      <div class="ai-card">
-        <div class="ai-heading">✨ जग्गा जासूस की खोज</div>
-        <div id="directAnswer" class="ai-answer">यहाँ आपके सवाल का AI answer दिखाई देगा।</div>
-        <div id="answerSource" class="answer-source"></div>
-      </div>
-    </section>
+    </form>
 
-    <section class="results-section">
-      <div class="section-title"><span>🌐</span><h2>Web Search Results</h2></div>
-      <div id="results" class="results-grid">
-        <div class="empty">🔎 कुछ खोजने के बाद web results यहाँ दिखाई देंगे।</div>
-      </div>
-    </section>
+    <p id="authStatus" role="status" aria-live="polite"></p>
 
-    <section class="news-section" id="newsSection">
-      <div class="section-title">
-        <span>📰</span>
-        <h2>Live News — ताज़ा खबरें</h2>
-        <button id="refreshNewsBtn" type="button">🔄 Refresh</button>
-      </div>
-      <p id="newsStatus" class="news-status">ताज़ा खबरें लोड हो रही हैं...</p>
-      <div id="newsGrid" class="news-grid">
-        <div class="empty">📰 खबरें लोड हो रही हैं...</div>
-      </div>
-    </section>
+    <p class="auth-back">
+      <a href="index.html">← Search India पर वापस जाएँ</a>
+    </p>
 
-    <section class="features-section">
-      <h2>Search India की सुविधाएँ</h2>
-      <div class="feature-grid">
-        <div class="feature-card"><div>🌐</div><h3>Web Search</h3><p>पूरी web से results खोजें।</p></div>
-        <div class="feature-card"><div>🤖</div><h3>AI Answers</h3><p>अपने सवाल का आसान AI answer पाएँ।</p></div>
-        <div class="feature-card"><div>🎤</div><h3>Voice Search</h3><p>बोलकर search करें।</p></div>
-        <div class="feature-card"><div>📷</div><h3>Photo Search</h3><p>Camera से फोटो लें या Gallery से फोटो चुनें।</p></div>
-      </div>
-    </section>
   </main>
 
-  <section id="historySection" class="history-section hidden">
-    <h2>🕘 Search History</h2>
-    <button id="backFromHistoryBtn" class="history-back-btn" type="button">← वापस Home</button>
-    <div id="historyList" class="history-list"></div>
-    <button id="clearHistoryBtn" class="clear-history-btn" type="button">🗑️ Clear All History</button>
-  </section>
-
-  <section class="useful-section">
-    <div class="useful-heading"><span>📚</span><h2>Search India पर क्या खोज सकते हैं?</h2></div>
-    <p class="useful-intro">Search India पर पढ़ाई, भारत, technology, cities और रोज़मर्रा की जानकारी से जुड़े सवाल आसानी से खोजें।</p>
-
-    <div class="useful-grid">
-      <button type="button" class="useful-card" data-search="Class 12 Biology"><span>📖</span><strong>Education</strong><small>पढ़ाई और exam questions</small></button>
-      <button type="button" class="useful-card" data-search="India general knowledge"><span>🇮🇳</span><strong>India Knowledge</strong><small>भारत से जुड़ी जानकारी</small></button>
-      <button type="button" class="useful-card" data-search="India cities"><span>🗺️</span><strong>States & Cities</strong><small>शहर और राज्यों की जानकारी</small></button>
-      <button type="button" class="useful-card" data-search="latest technology"><span>💻</span><strong>Technology</strong><small>Technology और internet</small></button>
-      <button type="button" class="useful-card" data-search="AI questions"><span>🤖</span><strong>AI Questions</strong><small>AI से सवाल पूछें</small></button>
-      <button type="button" class="useful-card" data-search="India information"><span>🔎</span><strong>General Information</strong><small>अलग-अलग topics खोजें</small></button>
-    </div>
-  </section>
-
-  <footer class="site-footer">
-    <div class="footer-title">🇮🇳 Search India</div>
-    <div class="footer-links">
-      <a href="about.html">About Us</a>
-      <a href="privacy.html">Privacy Policy</a>
-      <a href="terms.html">Terms &amp; Conditions</a>
-      <a href="contact.html">Contact Us</a>
-    </div>
-    <p class="footer-copy">© 2026 Search India 🇮🇳 — All Rights Reserved</p>
-  </footer>
-
-  <section class="developer-section" id="about-developer">
-    <div class="developer-card">
-      <img
-        src="/IMG_20261015_211114.jpg"
-        alt="Harsh Thakur - Founder and Developer"
-        class="developer-photo"
-      >
-      <div class="developer-info">
-        <p class="developer-label">MEET THE CREATOR</p>
-        <h2>Harsh Thakur</h2>
-        <p class="developer-role">Founder &amp; Developer</p>
-        <p>I built Search India to make information easier
-          to discover through one simple search platform.</p>
-        <span class="developer-brand">🇮🇳 Search India</span>
-      </div>
-    </div>
-  </section>
-
-  <script src="app.js"></script>
-
   <script>
-    if ("serviceWorker" in navigator) {
-      window.addEventListener("load", () => {
-        navigator.serviceWorker.register("/sw.js")
-          .catch((error) => console.error("Service Worker error:", error));
-      });
-    }
+    const passwordInput = document.getElementById("password");
+    const togglePassword = document.getElementById("togglePassword");
+
+    togglePassword.addEventListener("click", () => {
+      const show = passwordInput.type === "password";
+
+      passwordInput.type = show ? "text" : "password";
+      togglePassword.textContent = show ? "छिपाएँ" : "दिखाएँ";
+
+      togglePassword.setAttribute(
+        "aria-label",
+        show ? "Password छिपाएँ" : "Password दिखाएँ"
+      );
+
+      togglePassword.setAttribute(
+        "aria-pressed",
+        String(show)
+      );
+    });
   </script>
+
+  <script type="module" src="auth.js"></script>
 </body>
-          </html>
-  
+</html>
