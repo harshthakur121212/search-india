@@ -1,3 +1,4 @@
+
 "use strict";
 
 // ========================================
@@ -72,6 +73,7 @@ function setStatus(message) {
 
 function closeAccountMenu() {
   hideElement(accountMenu);
+
   if (accountBtn) {
     accountBtn.setAttribute("aria-expanded", "false");
   }
@@ -96,7 +98,9 @@ async function readJson(response) {
   try {
     data = JSON.parse(text);
   } catch (_) {
-    throw new Error("Server se valid JSON response nahi mila.");
+    throw new Error(
+      `Server se valid JSON response nahi mila (HTTP ${response.status}).`
+    );
   }
 
   if (!response.ok) {
@@ -228,8 +232,6 @@ if (accountBtn && accountMenu) {
 if (addAccountBtn) {
   addAccountBtn.addEventListener("click", () => {
     closeAccountMenu();
-
-    // This page must be created separately.
     window.location.href = "login.html";
   });
 }
@@ -417,7 +419,6 @@ if (deleteAllBtn) {
 
 // ========================================
 // AI API
-// Image is sent as a data URL when selected.
 // ========================================
 
 async function getAIAnswer(query, image = null) {
@@ -557,17 +558,17 @@ async function performSearch(rawQuery) {
 
   saveHistory(query);
   clearResults();
-  setStatus(selectedImage
-    ? "Photo aur AI answer process ho rahe hain..."
-    : "AI aur web search ho rahi hai...");
+
+  setStatus(
+    selectedImage
+      ? "Photo aur AI answer process ho rahe hain..."
+      : "AI aur web search ho rahi hai..."
+  );
 
   try {
-    const aiPromise = getAIAnswer(query, selectedImage);
-    const webPromise = getWebResults(query);
-
     const jobs = await Promise.allSettled([
-      aiPromise,
-      webPromise
+      getAIAnswer(query, selectedImage),
+      getWebResults(query)
     ]);
 
     let aiWorked = false;
@@ -597,13 +598,9 @@ async function performSearch(rawQuery) {
     if (aiWorked && webWorked) {
       setStatus("AI answer aur web results mil gaye.");
     } else if (aiWorked || webWorked) {
-      setStatus(
-        "Kuch results mile. " + errors.join(" | ")
-      );
+      setStatus("Kuch results mile. " + errors.join(" | "));
     } else {
-      setStatus(
-        "Search mein samasya: " + errors.join(" | ")
-      );
+      setStatus("Search mein samasya: " + errors.join(" | "));
     }
 
     if (homeContent) {
@@ -675,13 +672,64 @@ if (voiceBtn) {
 }
 
 // ========================================
+// IMAGE COMPRESSION
+// Photo ko chhota karke API request bhejein.
+// ========================================
+
+async function compressImage(file) {
+  const imageUrl = URL.createObjectURL(file);
+
+  try {
+    const img = new Image();
+
+    await new Promise((resolve, reject) => {
+      img.onload = resolve;
+      img.onerror = () => reject(
+        new Error("Photo open nahi ho paayi.")
+      );
+      img.src = imageUrl;
+    });
+
+    const maxSide = 1280;
+
+    const scale = Math.min(
+      1,
+      maxSide / Math.max(img.width, img.height)
+    );
+
+    const canvas = document.createElement("canvas");
+    canvas.width = Math.max(1, Math.round(img.width * scale));
+    canvas.height = Math.max(1, Math.round(img.height * scale));
+
+    const context = canvas.getContext("2d");
+
+    if (!context) {
+      throw new Error("Photo process nahi ho paayi.");
+    }
+
+    context.drawImage(
+      img,
+      0,
+      0,
+      canvas.width,
+      canvas.height
+    );
+
+    return canvas.toDataURL("image/jpeg", 0.7);
+  } finally {
+    URL.revokeObjectURL(imageUrl);
+  }
+}
+
+// ========================================
 // IMAGE SEARCH
-// Sends selected image to /api/ask.
-// Requires api/ask.js to support image input.
+// Compressed photo ko /api/ask par bhejein.
 // ========================================
 
 if (cameraBtn && cameraInput) {
-  cameraBtn.addEventListener("click", () => cameraInput.click());
+  cameraBtn.addEventListener("click", () => {
+    cameraInput.click();
+  });
 
   cameraInput.addEventListener("change", async () => {
     const file = cameraInput.files?.[0];
@@ -693,23 +741,16 @@ if (cameraBtn && cameraInput) {
       return;
     }
 
-    if (file.size > 5 * 1024 * 1024) {
-      setStatus("Image 5 MB se chhoti select karein.");
+    if (file.size > 10 * 1024 * 1024) {
+      setStatus("Image 10 MB se chhoti select karein.");
       cameraInput.value = "";
       return;
     }
 
     try {
-      const dataUrl = await new Promise((resolve, reject) => {
-        const reader = new FileReader();
+      setStatus("Photo compress ho rahi hai...");
 
-        reader.onload = () => resolve(reader.result);
-        reader.onerror = () => reject(
-          new Error("Image read nahi ho paayi.")
-        );
-
-        reader.readAsDataURL(file);
-      });
+      const dataUrl = await compressImage(file);
 
       if (typeof dataUrl !== "string") {
         throw new Error("Image format sahi nahi hai.");
@@ -727,22 +768,32 @@ if (cameraBtn && cameraInput) {
           "Is photo mein kya hai? Iska varnan karo.";
       }
 
-      setStatus("Photo select ho gayi. AI answer ke liye search karein.");
+      setStatus("Photo ready hai. AI answer process ho raha hai.");
 
-      // Automatically run AI vision + web search.
       await performSearch(searchInput?.value || "");
     } catch (error) {
-      setStatus(error.message || "Image process nahi ho paayi.");
+      setStatus(
+        error.message || "Image process nahi ho paayi."
+      );
     }
   });
 }
+
+// ========================================
+// REMOVE SELECTED IMAGE
+// ========================================
 
 if (removeImageBtn) {
   removeImageBtn.addEventListener("click", () => {
     selectedImage = null;
 
-    if (imagePreview) imagePreview.removeAttribute("src");
-    if (cameraInput) cameraInput.value = "";
+    if (imagePreview) {
+      imagePreview.removeAttribute("src");
+    }
+
+    if (cameraInput) {
+      cameraInput.value = "";
+    }
 
     hideElement(imagePreviewBox);
 
@@ -811,9 +862,11 @@ function createNewsCard(item) {
     image.loading = "lazy";
     image.referrerPolicy = "no-referrer";
 
-    image.addEventListener("error", () => image.remove(), {
-      once: true
-    });
+    image.addEventListener(
+      "error",
+      () => image.remove(),
+      { once: true }
+    );
 
     link.appendChild(image);
   }
@@ -851,6 +904,10 @@ function createNewsCard(item) {
   return card;
 }
 
+// ========================================
+// LOAD NEWS
+// ========================================
+
 async function loadNews() {
   if (!newsGrid) return;
 
@@ -860,7 +917,9 @@ async function loadNews() {
     newsStatus.textContent = "ताज़ा खबरें लोड हो रही हैं...";
   }
 
-  if (refreshNewsBtn) refreshNewsBtn.disabled = true;
+  if (refreshNewsBtn) {
+    refreshNewsBtn.disabled = true;
+  }
 
   try {
     const response = await fetch("/api/news");
@@ -883,13 +942,15 @@ async function loadNews() {
 
       if (newsStatus) {
         newsStatus.textContent =
-          "थोड़ी देर बाद Refresh करके देखें।";
+          "Thodi der baad Refresh karke dekhein.";
       }
 
       return;
     }
 
-    cards.forEach((card) => newsGrid.appendChild(card));
+    cards.forEach((card) => {
+      newsGrid.appendChild(card);
+    });
 
     if (newsStatus) {
       newsStatus.textContent =
@@ -900,12 +961,15 @@ async function loadNews() {
       "News abhi load nahi ho paayi. Baad mein try karein.";
 
     if (newsStatus) {
-      newsStatus.textContent = "News load karne mein samasya aayi.";
+      newsStatus.textContent =
+        "News load karne mein samasya aayi.";
     }
 
     console.error("Search India news error:", error);
   } finally {
-    if (refreshNewsBtn) refreshNewsBtn.disabled = false;
+    if (refreshNewsBtn) {
+      refreshNewsBtn.disabled = false;
+    }
   }
 }
 
@@ -921,7 +985,9 @@ document.querySelectorAll("[data-search]").forEach((button) => {
   button.addEventListener("click", () => {
     const query = button.getAttribute("data-search") || "";
 
-    if (searchInput) searchInput.value = query;
+    if (searchInput) {
+      searchInput.value = query;
+    }
 
     performSearch(query);
   });
@@ -944,3 +1010,4 @@ if (searchInput) {
 }
 
 console.log("Search India app.js loaded successfully.");
+    
