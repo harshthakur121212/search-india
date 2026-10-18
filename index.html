@@ -4,208 +4,424 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-
   <meta name="theme-color" content="#ffffff">
-  <meta name="description" content="Search India account login and signup">
-
-  <title>Login / Sign Up — Search India 🇮🇳</title>
+  <meta name="description" content="Search India - AI answers, web search, voice search and photo search.">
+  <title>Search India 🇮🇳 — भारत का सर्च प्लेटफॉर्म</title>
 
   <link rel="stylesheet" href="style.css">
+  <link rel="manifest" href="manifest.json">
 
   <style>
-    .auth-container {
-      width: min(100% - 32px, 420px);
-      margin: 40px auto;
-      padding: 24px;
-      border-radius: 16px;
-      background: var(--card-bg, #ffffff);
-      box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+    * { box-sizing: border-box; }
+
+    body {
+      margin: 0;
+      font-family: Arial, sans-serif;
+      background: #fff;
+      color: #202124;
     }
 
-    .auth-container h1,
-    .auth-container h2 {
-      text-align: center;
-    }
+    .hidden { display: none !important; }
 
-    .auth-subtitle {
-      text-align: center;
-      color: #666;
-      margin-bottom: 24px;
-    }
-
-    .auth-form label {
-      display: block;
-      margin: 16px 0 6px;
-      font-weight: 600;
-    }
-
-    .auth-form input {
-      box-sizing: border-box;
-      width: 100%;
-      min-height: 46px;
-      padding: 12px;
-      border: 1px solid #ccc;
-      border-radius: 8px;
-      font-size: 16px;
-    }
-
-    .password-row {
+    .site-header {
       display: flex;
-      gap: 8px;
       align-items: center;
-    }
-
-    .password-row input {
-      flex: 1;
-      min-width: 0;
-    }
-
-    .password-toggle {
-      min-height: 44px;
-      padding: 8px 10px;
-      border: 1px solid #ccc;
-      border-radius: 8px;
-      background: #f5f5f5;
-      cursor: pointer;
-    }
-
-    .auth-actions {
-      display: grid;
+      justify-content: space-between;
       gap: 12px;
-      margin-top: 22px;
+      padding: 14px 18px;
+      border-bottom: 1px solid #eee;
     }
 
-    .auth-actions button {
+    .brand {
+      color: #1769e0;
+      font-size: 21px;
+      font-weight: 700;
+      text-decoration: none;
+    }
+
+    button, input { font: inherit; }
+
+    button { cursor: pointer; }
+
+    .account-area { position: relative; }
+
+    .account-button {
+      border: 1px solid #ddd;
+      border-radius: 22px;
+      background: #fff;
+      padding: 10px 14px;
+    }
+
+    .account-menu {
+      position: absolute;
+      z-index: 20;
+      top: 48px;
+      right: 0;
+      width: 220px;
+      padding: 8px;
+      background: white;
+      border: 1px solid #ddd;
+      border-radius: 12px;
+      box-shadow: 0 5px 20px #00000018;
+    }
+
+    .account-menu button,
+    .account-menu a {
+      display: block;
       width: 100%;
-      min-height: 46px;
+      padding: 12px;
+      text-align: left;
+      color: #202124;
+      background: white;
+      border: 0;
       border-radius: 8px;
-      cursor: pointer;
+      text-decoration: none;
+    }
+
+    .account-menu button:hover,
+    .account-menu a:hover { background: #f2f6ff; }
+
+    .container {
+      width: min(100% - 28px, 850px);
+      margin: 0 auto;
+    }
+
+    #homeContent { padding-top: 45px; }
+
+    .hero { text-align: center; margin-bottom: 25px; }
+
+    .hero h1 {
+      margin: 0 0 10px;
+      font-size: clamp(30px, 7vw, 48px);
+      color: #1769e0;
+    }
+
+    .hero p { color: #5f6368; line-height: 1.6; }
+
+    .search-form {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 8px;
+      border: 1px solid #dadce0;
+      border-radius: 28px;
+      box-shadow: 0 2px 8px #0000000c;
+    }
+
+    .search-form:focus-within {
+      box-shadow: 0 2px 12px #00000020;
+      border-color: #9bbcf4;
+    }
+
+    #searchInput {
+      width: 100%;
+      min-width: 0;
+      padding: 9px 8px;
+      border: 0;
+      outline: none;
+      background: transparent;
       font-size: 16px;
     }
 
-    #loginBtn {
-      background: #1769e0;
-      color: #fff;
+    .tool-button {
+      flex-shrink: 0;
+      width: 42px;
+      height: 42px;
       border: 0;
+      border-radius: 50%;
+      background: #f1f3f4;
     }
 
-    #signupBtn {
-      background: transparent;
-      color: #1769e0;
-      border: 1px solid #1769e0;
+    #searchForm button[type="submit"] {
+      flex-shrink: 0;
+      border: 0;
+      border-radius: 22px;
+      padding: 12px 17px;
+      background: #1769e0;
+      color: white;
     }
 
-    #authStatus {
-      margin-top: 18px;
+    .quick-actions {
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: center;
+      gap: 10px;
+      margin: 18px 0 25px;
+    }
+
+    .quick-actions button,
+    .secondary-button {
+      padding: 10px 14px;
+      border: 1px solid #dadce0;
+      border-radius: 22px;
+      background: #fff;
+    }
+
+    #searchStatus {
+      margin: 16px 0;
+      color: #5f6368;
       overflow-wrap: anywhere;
     }
 
-    .auth-back {
-      text-align: center;
-      margin-top: 22px;
+    .answer-box, .section-card {
+      margin: 20px 0;
+      padding: 18px;
+      border: 1px solid #e3e6eb;
+      border-radius: 14px;
+      background: #fff;
     }
 
-    .auth-back a {
+    .answer-box h2, .section-card h2 { margin-top: 0; }
+
+    #directAnswer {
+      line-height: 1.7;
+      white-space: pre-wrap;
+      overflow-wrap: anywhere;
+    }
+
+    #answerSource a, .result-card a { color: #1769e0; }
+
+    #results {
+      display: grid;
+      gap: 12px;
+      margin: 18px 0;
+    }
+
+    .result-card {
+      padding: 15px;
+      border: 1px solid #e3e6eb;
+      border-radius: 12px;
+      overflow-wrap: anywhere;
+    }
+
+    .result-card h3 { margin: 0 0 8px; font-size: 18px; }
+    .result-card p { margin-bottom: 0; line-height: 1.6; }
+    .empty { padding: 18px; color: #666; }
+
+    .section-heading {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+    }
+
+    #newsGrid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(min(100%, 230px), 1fr));
+      gap: 12px;
+    }
+
+    #newsGrid a {
+      display: block;
+      padding: 14px;
+      border: 1px solid #e3e6eb;
+      border-radius: 12px;
       color: #1769e0;
+      overflow-wrap: anywhere;
     }
 
-    @media (max-width: 480px) {
-      .auth-container {
-        margin: 20px auto;
-        padding: 18px;
-      }
+    #newsStatus { color: #666; }
+
+    .useful-section { margin: 30px auto; }
+
+    .useful-links {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+    }
+
+    .useful-links a {
+      padding: 10px 14px;
+      border-radius: 22px;
+      background: #f1f3f4;
+      color: #1769e0;
+      text-decoration: none;
+    }
+
+    .site-footer {
+      margin-top: 35px;
+      padding: 22px 12px;
+      border-top: 1px solid #eee;
+      text-align: center;
+      color: #666;
+      font-size: 14px;
+    }
+
+    .history-item {
+      display: flex;
+      gap: 8px;
+      margin: 10px 0;
+    }
+
+    .history-search {
+      flex: 1;
+      display: flex;
+      justify-content: space-between;
+      gap: 10px;
+      padding: 12px;
+      border: 1px solid #ddd;
+      border-radius: 10px;
+      background: #fff;
+      text-align: left;
+      overflow-wrap: anywhere;
+    }
+
+    .history-search small { color: #666; }
+
+    .history-delete {
+      border: 1px solid #ddd;
+      border-radius: 10px;
+      background: white;
+      padding: 8px 12px;
+    }
+
+    #imagePreview {
+      display: block;
+      max-width: 100%;
+      max-height: 300px;
+      margin-top: 12px;
+      border-radius: 12px;
+    }
+
+    @media (max-width: 520px) {
+      .site-header { padding: 12px; }
+      #homeContent { padding-top: 30px; }
+      .search-form { gap: 4px; }
+      .tool-button { width: 36px; height: 36px; }
+      #searchForm button[type="submit"] { padding: 11px 12px; }
+      .history-search { flex-direction: column; }
     }
   </style>
 </head>
 
 <body>
-  <main class="container auth-container">
+  <header class="site-header">
+    <a class="brand" href="index.html" aria-label="Search India Home">
+      🇮🇳 Search India
+    </a>
 
-    <h1>🇮🇳 Search India</h1>
-    <h2 id="authHeading">Login / Sign up</h2>
+    <div class="account-area">
+      <button
+        type="button"
+        id="accountBtn"
+        class="account-button"
+        aria-expanded="false"
+        aria-controls="accountMenu"
+      >👤 Account ▾</button>
 
-    <p class="auth-subtitle">
-      अपने Search India account में प्रवेश करें
-    </p>
+      <div id="accountMenu" class="account-menu hidden">
+        <button type="button" id="addAccountBtn">Login / Create account</button>
+        <button type="button" id="guestBtn">Continue as Guest</button>
+        <button type="button" id="openHistoryBtn">🕘 Search History</button>
+        <button type="button" id="delete15Btn">पिछले 15 मिनट की history हटाएँ</button>
+        <button type="button" id="deleteAllBtn">सभी history हटाएँ</button>
+      </div>
+    </div>
+  </header>
 
-    <form id="authForm" class="auth-form">
+  <main class="container">
+    <div id="homeContent">
+      <section class="hero">
+        <h1>Search India 🇮🇳</h1>
+        <p>भारत का सर्च प्लेटफॉर्म</p>
+        <p>पूरी जानकारी, एक ही जगह</p>
+      </section>
 
-      <label for="email">Email</label>
+      <form id="searchForm" class="search-form">
+        <input
+          id="searchInput"
+          type="search"
+          placeholder="भारत में कुछ खोजें..."
+          aria-label="क्या खोजना चाहते हैं?"
+          autocomplete="off"
+        >
+
+        <button type="button" id="micBtn" class="tool-button" aria-label="Voice search" title="Voice search">🎙️</button>
+        <button type="button" id="cameraBtn" class="tool-button" aria-label="Photo search" title="Camera या Gallery से फोटो खोजें">📷</button>
+        <button type="submit">Search</button>
+      </form>
+
       <input
-        id="email"
-        name="email"
-        type="email"
-        required
-        autocomplete="email"
-        placeholder="अपना email लिखें"
+        id="cameraInput"
+        type="file"
+        accept="image/*"
+        capture="environment"
+        hidden
       >
 
-      <label for="password">Password</label>
+      <input
+        id="imageInput"
+        type="file"
+        accept="image/*"
+        hidden
+      >
 
-      <div class="password-row">
-        <input
-          id="password"
-          name="password"
-          type="password"
-          required
-          minlength="6"
-          autocomplete="current-password"
-          placeholder="कम से कम 6 अक्षर"
-        >
-
-        <button
-          type="button"
-          id="togglePassword"
-          class="password-toggle"
-          aria-label="Password दिखाएँ"
-          aria-pressed="false"
-        >
-          दिखाएँ
-        </button>
+      <div class="quick-actions">
+        <button type="button" id="homeBtn">🏠 Home</button>
+        <button type="button" id="clearHistoryBtn">Clear history</button>
+        <a class="secondary-button" href="login.html">Login / Sign up</a>
       </div>
 
-      <div class="auth-actions">
-        <button type="submit" id="loginBtn">
-          Login
-        </button>
-
-        <button type="button" id="signupBtn">
-          Create account
-        </button>
+      <div id="imagePreviewBox" class="section-card hidden">
+        <strong>Selected photo</strong>
+        <img id="imagePreview" alt="Selected photo preview">
+        <button type="button" id="removeImageBtn" class="secondary-button">फोटो हटाएँ</button>
       </div>
 
-    </form>
+      <p id="searchStatus" role="status" aria-live="polite"></p>
 
-    <p id="authStatus" role="status" aria-live="polite"></p>
+      <section id="answerBox" class="answer-box hidden">
+        <h2>🤖 AI Answer</h2>
+        <div id="directAnswer"></div>
+        <p id="answerSource"></p>
+      </section>
 
-    <p class="auth-back">
-      <a href="index.html">← Search India पर वापस जाएँ</a>
-    </p>
+      <section class="section-card">
+        <h2>🌐 Web Results</h2>
+        <div id="results">
+          <div class="empty">🔎 Search करने के बाद web results यहाँ दिखेंगे।</div>
+        </div>
+      </section>
 
+      <section class="section-card">
+        <div class="section-heading">
+          <h2>📰 Latest News</h2>
+          <button type="button" id="refreshNewsBtn" class="secondary-button">Refresh</button>
+        </div>
+        <p id="newsStatus" role="status" aria-live="polite"></p>
+        <div id="newsGrid"></div>
+      </section>
+    </div>
+
+    <section id="historySection" class="section-card hidden">
+      <div class="section-heading">
+        <h2>🕘 Search History</h2>
+        <button type="button" id="backFromHistoryBtn" class="secondary-button">← Back</button>
+      </div>
+      <div id="historyList"></div>
+    </section>
+
+    <section class="useful-section">
+      <h2>Useful Links</h2>
+      <div class="useful-links">
+        <a href="https://www.bing.com/" target="_blank" rel="noopener noreferrer">Web Search</a>
+        <a href="https://www.youtube.com/" target="_blank" rel="noopener noreferrer">YouTube</a>
+        <a href="https://www.wikipedia.org/" target="_blank" rel="noopener noreferrer">Wikipedia</a>
+      </div>
+    </section>
+
+    <section id="about-developer" class="section-card">
+      <h2>About Search India</h2>
+      <p>Search India एक search platform है जो AI answers और web results उपलब्ध कराने के लिए बनाया गया है।</p>
+    </section>
   </main>
 
-  <script>
-    const passwordInput = document.getElementById("password");
-    const togglePassword = document.getElementById("togglePassword");
+  <footer class="site-footer">
+    <p>© Search India 🇮🇳</p>
+    <p>जानकारी खोजें, सीखें और आगे बढ़ें।</p>
+  </footer>
 
-    togglePassword.addEventListener("click", () => {
-      const show = passwordInput.type === "password";
-
-      passwordInput.type = show ? "text" : "password";
-      togglePassword.textContent = show ? "छिपाएँ" : "दिखाएँ";
-
-      togglePassword.setAttribute(
-        "aria-label",
-        show ? "Password छिपाएँ" : "Password दिखाएँ"
-      );
-
-      togglePassword.setAttribute(
-        "aria-pressed",
-        String(show)
-      );
-    });
-  </script>
-
-  <script type="module" src="auth.js"></script>
+  <script src="app.js" defer></script>
 </body>
-</html>
+  </html>
+    
