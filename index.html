@@ -4,64 +4,83 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <meta name="theme-color" content="#ffffff">
-  <meta name="description" content="Search India - AI answers, web search, voice search and photo search.">
+
   <title>Search India 🇮🇳 — भारत का सर्च प्लेटफॉर्म</title>
+  <meta name="description" content="Search India पर AI answers, web search, news और photo search एक जगह पाएँ।">
+  <meta name="theme-color" content="#1769e0">
 
   <link rel="stylesheet" href="style.css">
-  <link rel="manifest" href="manifest.json">
 
   <style>
-    * { box-sizing: border-box; }
+    * {
+      box-sizing: border-box;
+    }
 
     body {
       margin: 0;
       font-family: Arial, sans-serif;
-      background: #fff;
       color: #202124;
+      background: #fff;
     }
 
-    .hidden { display: none !important; }
+    button, input {
+      font: inherit;
+    }
+
+    button {
+      cursor: pointer;
+    }
+
+    a {
+      overflow-wrap: anywhere;
+    }
+
+    .hidden {
+      display: none !important;
+    }
 
     .site-header {
+      position: relative;
+      z-index: 10;
       display: flex;
       align-items: center;
       justify-content: space-between;
       gap: 12px;
-      padding: 14px 18px;
+      padding: 12px 16px;
       border-bottom: 1px solid #eee;
+      background: #fff;
     }
 
     .brand {
       color: #1769e0;
-      font-size: 21px;
+      font-size: clamp(18px, 4vw, 22px);
       font-weight: 700;
       text-decoration: none;
     }
 
-    button, input { font: inherit; }
-
-    button { cursor: pointer; }
-
-    .account-area { position: relative; }
+    .account-area {
+      position: relative;
+    }
 
     .account-button {
-      border: 1px solid #ddd;
-      border-radius: 22px;
+      width: 44px;
+      height: 44px;
+      border: 1px solid #dadce0;
+      border-radius: 50%;
       background: #fff;
-      padding: 10px 14px;
+      font-size: 22px;
     }
 
     .account-menu {
       position: absolute;
-      z-index: 20;
-      top: 48px;
+      z-index: 100;
+      top: 50px;
       right: 0;
-      width: 220px;
+      width: min(250px, calc(100vw - 24px));
       padding: 8px;
-      background: white;
       border: 1px solid #ddd;
-      border-radius: 12px;
+      border-radius: 14px;
+      background: #fff;
       box-shadow: 0 5px 20px #00000018;
     }
 
@@ -70,53 +89,64 @@
       display: block;
       width: 100%;
       padding: 12px;
-      text-align: left;
-      color: #202124;
-      background: white;
       border: 0;
       border-radius: 8px;
+      background: #fff;
+      color: #202124;
+      text-align: left;
       text-decoration: none;
     }
 
     .account-menu button:hover,
-    .account-menu a:hover { background: #f2f6ff; }
+    .account-menu a:hover {
+      background: #f2f6ff;
+    }
 
     .container {
       width: min(100% - 28px, 850px);
       margin: 0 auto;
     }
 
-    #homeContent { padding-top: 45px; }
+    #homeContent {
+      padding-top: 32px;
+    }
 
-    .hero { text-align: center; margin-bottom: 25px; }
+    .hero {
+      margin-bottom: 24px;
+      text-align: center;
+    }
 
     .hero h1 {
       margin: 0 0 10px;
-      font-size: clamp(30px, 7vw, 48px);
       color: #1769e0;
+      font-size: clamp(30px, 7vw, 48px);
     }
 
-    .hero p { color: #5f6368; line-height: 1.6; }
+    .hero p {
+      color: #5f6368;
+      line-height: 1.6;
+    }
 
     .search-form {
       display: flex;
       align-items: center;
-      gap: 8px;
-      padding: 8px;
+      gap: 6px;
+      padding: 7px;
       border: 1px solid #dadce0;
       border-radius: 28px;
       box-shadow: 0 2px 8px #0000000c;
     }
 
     .search-form:focus-within {
-      box-shadow: 0 2px 12px #00000020;
       border-color: #9bbcf4;
+      box-shadow: 0 2px 12px #00000020;
     }
 
     #searchInput {
+      flex: 1;
       width: 100%;
       min-width: 0;
-      padding: 9px 8px;
+      padding: 10px 8px;
       border: 0;
       outline: none;
       background: transparent;
@@ -125,8 +155,8 @@
 
     .tool-button {
       flex-shrink: 0;
-      width: 42px;
-      height: 42px;
+      width: 40px;
+      height: 40px;
       border: 0;
       border-radius: 50%;
       background: #f1f3f4;
@@ -134,9 +164,9 @@
 
     #searchForm button[type="submit"] {
       flex-shrink: 0;
+      padding: 11px 15px;
       border: 0;
       border-radius: 22px;
-      padding: 12px 17px;
       background: #1769e0;
       color: white;
     }
@@ -145,8 +175,8 @@
       display: flex;
       flex-wrap: wrap;
       justify-content: center;
-      gap: 10px;
-      margin: 18px 0 25px;
+      gap: 9px;
+      margin: 18px 0 24px;
     }
 
     .quick-actions button,
@@ -157,13 +187,15 @@
       background: #fff;
     }
 
-    #searchStatus {
-      margin: 16px 0;
+    #searchStatus,
+    #newsStatus {
+      margin: 14px 0;
       color: #5f6368;
       overflow-wrap: anywhere;
     }
 
-    .answer-box, .section-card {
+    .answer-box,
+    .section-card {
       margin: 20px 0;
       padding: 18px;
       border: 1px solid #e3e6eb;
@@ -171,7 +203,10 @@
       background: #fff;
     }
 
-    .answer-box h2, .section-card h2 { margin-top: 0; }
+    .answer-box h2,
+    .section-card h2 {
+      margin-top: 0;
+    }
 
     #directAnswer {
       line-height: 1.7;
@@ -179,7 +214,10 @@
       overflow-wrap: anywhere;
     }
 
-    #answerSource a, .result-card a { color: #1769e0; }
+    #answerSource a,
+    .result-card a {
+      color: #1769e0;
+    }
 
     #results {
       display: grid;
@@ -188,15 +226,27 @@
     }
 
     .result-card {
+      min-width: 0;
       padding: 15px;
       border: 1px solid #e3e6eb;
       border-radius: 12px;
       overflow-wrap: anywhere;
     }
 
-    .result-card h3 { margin: 0 0 8px; font-size: 18px; }
-    .result-card p { margin-bottom: 0; line-height: 1.6; }
-    .empty { padding: 18px; color: #666; }
+    .result-card h3 {
+      margin: 0 0 8px;
+      font-size: 18px;
+    }
+
+    .result-card p {
+      margin-bottom: 0;
+      line-height: 1.6;
+    }
+
+    .empty {
+      padding: 18px;
+      color: #666;
+    }
 
     .section-heading {
       display: flex;
@@ -207,12 +257,16 @@
 
     #newsGrid {
       display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(min(100%, 230px), 1fr));
+      grid-template-columns: repeat(
+        auto-fit,
+        minmax(min(100%, 230px), 1fr)
+      );
       gap: 12px;
     }
 
     #newsGrid a {
       display: block;
+      min-width: 0;
       padding: 14px;
       border: 1px solid #e3e6eb;
       border-radius: 12px;
@@ -220,9 +274,9 @@
       overflow-wrap: anywhere;
     }
 
-    #newsStatus { color: #666; }
-
-    .useful-section { margin: 30px auto; }
+    .useful-section {
+      margin: 30px auto;
+    }
 
     .useful-links {
       display: flex;
@@ -238,13 +292,100 @@
       text-decoration: none;
     }
 
+    /* Compact expandable information options */
+    .info-links {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: flex-start;
+      justify-content: center;
+      gap: 9px;
+      width: 100%;
+      max-width: 850px;
+      margin: 24px auto;
+    }
+
+    .info-option {
+      flex: 0 1 auto;
+      max-width: 100%;
+      border: 1px solid #dadce0;
+      border-radius: 22px;
+      background: #f8f9fa;
+    }
+
+    .info-option summary {
+      padding: 11px 15px;
+      color: #1769e0;
+      font-size: 15px;
+      font-weight: 600;
+      cursor: pointer;
+    }
+
+    .info-option[open] {
+      flex-basis: 100%;
+      border-radius: 12px;
+      background: #fff;
+    }
+
+    .info-option p {
+      padding: 0 15px;
+      line-height: 1.6;
+      overflow-wrap: anywhere;
+    }
+
+    .info-option a {
+      color: #1769e0;
+      overflow-wrap: anywhere;
+    }
+
+    /* Founder photo: full image, no circular cropping */
+    .founder-profile {
+      width: 100%;
+      max-width: 100%;
+      padding: 10px;
+      text-align: center;
+      overflow: hidden;
+    }
+
+    .founder-photo {
+      display: block;
+      width: auto;
+      height: auto;
+      max-width: min(100%, 280px);
+      max-height: 380px;
+      object-fit: contain;
+      object-position: center;
+      border: 3px solid #1769e0;
+      border-radius: 12px;
+      margin: 0 auto 14px;
+    }
+
+    #about-developer {
+      width: 100%;
+      max-width: 100%;
+      min-width: 0;
+      overflow: hidden;
+    }
+
     .site-footer {
-      margin-top: 35px;
+      margin-top: 30px;
       padding: 22px 12px;
       border-top: 1px solid #eee;
-      text-align: center;
       color: #666;
       font-size: 14px;
+      text-align: center;
+    }
+
+    .footer-info-links {
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: center;
+      gap: 10px 18px;
+      padding: 10px;
+    }
+
+    .footer-info-links a {
+      color: #1769e0;
+      text-decoration: none;
     }
 
     .history-item {
@@ -254,8 +395,9 @@
     }
 
     .history-search {
-      flex: 1;
       display: flex;
+      flex: 1;
+      min-width: 0;
       justify-content: space-between;
       gap: 10px;
       padding: 12px;
@@ -266,13 +408,15 @@
       overflow-wrap: anywhere;
     }
 
-    .history-search small { color: #666; }
+    .history-search small {
+      color: #666;
+    }
 
     .history-delete {
+      padding: 8px 12px;
       border: 1px solid #ddd;
       border-radius: 10px;
-      background: white;
-      padding: 8px 12px;
+      background: #fff;
     }
 
     #imagePreview {
@@ -281,39 +425,47 @@
       max-height: 300px;
       margin-top: 12px;
       border-radius: 12px;
+      object-fit: contain;
     }
-/* Founder photo ko screen ke andar rakhne ke liye */
-.founder-profile {
-  width: 100%;
-  max-width: 100%;
-  text-align: center;
-  padding: 10px;
-  overflow-wrap: anywhere;
-}
 
-.founder-photo {
-  display: block;
-  width: 150px;
-  height: 150px;
-  max-width: 100%;
-  object-fit: cover;
-  border-radius: 50%;
-  border: 3px solid #1769e0;
-  margin: 0 auto 12px;
-}
-
-#about-developer {
-  width: 100%;
-  max-width: 100%;
-  overflow: hidden;
-}
     @media (max-width: 520px) {
-      .site-header { padding: 12px; }
-      #homeContent { padding-top: 30px; }
-      .search-form { gap: 4px; }
-      .tool-button { width: 36px; height: 36px; }
-      #searchForm button[type="submit"] { padding: 11px 12px; }
-      .history-search { flex-direction: column; }
+      .site-header {
+        padding: 10px 12px;
+      }
+
+      #homeContent {
+        padding-top: 25px;
+      }
+
+      .search-form {
+        gap: 4px;
+      }
+
+      .tool-button {
+        width: 36px;
+        height: 36px;
+      }
+
+      #searchForm button[type="submit"] {
+        padding: 10px 12px;
+      }
+
+      .history-search {
+        flex-direction: column;
+      }
+
+      .info-links {
+        gap: 8px;
+      }
+
+      .info-option summary {
+        padding: 10px 12px;
+      }
+
+      .founder-photo {
+        max-width: 100%;
+        max-height: 340px;
+      }
     }
   </style>
 </head>
@@ -321,24 +473,40 @@
 <body>
   <header class="site-header">
     <a class="brand" href="index.html" aria-label="Search India Home">
-      🇮🇳 Search India
+      Search India 🇮🇳
     </a>
 
     <div class="account-area">
       <button
-        type="button"
         id="accountBtn"
         class="account-button"
+        type="button"
+        aria-label="Account menu"
         aria-expanded="false"
         aria-controls="accountMenu"
-      >👤 Account ▾</button>
+        title="Account"
+      >👤</button>
 
       <div id="accountMenu" class="account-menu hidden">
-        <button type="button" id="addAccountBtn">Login / Create account</button>
-        <button type="button" id="guestBtn">Continue as Guest</button>
-        <button type="button" id="openHistoryBtn">🕘 Search History</button>
-        <button type="button" id="delete15Btn">पिछले 15 मिनट की history हटाएँ</button>
-        <button type="button" id="deleteAllBtn">सभी history हटाएँ</button>
+        <button id="addAccountBtn" type="button">
+          Login / Sign up
+        </button>
+
+        <button id="guestBtn" type="button">
+          Continue as Guest
+        </button>
+
+        <button id="openHistoryBtn" type="button">
+          Search History
+        </button>
+
+        <button id="delete15Btn" type="button">
+          Clear Recent Search History
+        </button>
+
+        <button id="deleteAllBtn" type="button">
+          Clear All Search History
+        </button>
       </div>
     </div>
   </header>
@@ -356,12 +524,26 @@
           id="searchInput"
           type="search"
           placeholder="भारत में कुछ खोजें..."
-          aria-label="क्या खोजना चाहते हैं?"
+          aria-label="Search India"
           autocomplete="off"
         >
 
-        <button type="button" id="micBtn" class="tool-button" aria-label="Voice search" title="Voice search">🎙️</button>
-        <button type="button" id="cameraBtn" class="tool-button" aria-label="Photo search" title="Camera या Gallery से फोटो खोजें">📷</button>
+        <button
+          id="micBtn"
+          class="tool-button"
+          type="button"
+          aria-label="Voice search"
+          title="Voice Search"
+        >🎙️</button>
+
+        <button
+          id="cameraBtn"
+          class="tool-button"
+          type="button"
+          aria-label="Search with photo"
+          title="Photo Search"
+        >📷</button>
+
         <button type="submit">Search</button>
       </form>
 
@@ -380,114 +562,149 @@
         hidden
       >
 
-      <div class="quick-actions">
-        <button type="button" id="homeBtn">🏠 Home</button>
-        <button type="button" id="clearHistoryBtn">Clear history</button>
-        <a class="secondary-button" href="login.html">Login / Sign up</a>
+      <div id="imagePreviewBox" class="hidden">
+        <img id="imagePreview" alt="Selected image preview">
+        <button id="removeImageBtn" class="secondary-button" type="button">
+          Remove Photo
+        </button>
       </div>
 
-      <div id="imagePreviewBox" class="section-card hidden">
-        <strong>Selected photo</strong>
-        <img id="imagePreview" alt="Selected photo preview">
-        <button type="button" id="removeImageBtn" class="secondary-button">फोटो हटाएँ</button>
+      <div class="quick-actions">
+        <button id="homeBtn" type="button">Home</button>
+        <button id="clearHistoryBtn" type="button">Clear Search History</button>
       </div>
 
       <p id="searchStatus" role="status" aria-live="polite"></p>
 
       <section id="answerBox" class="answer-box hidden">
-        <h2>🤖 AI Answer</h2>
+        <h2>AI Answer</h2>
         <div id="directAnswer"></div>
-        <p id="answerSource"></p>
+        <div id="answerSource"></div>
       </section>
 
-      <section class="section-card">
-        <h2>🌐 Web Results</h2>
-        <div id="results">
-          <div class="empty">🔎 Search करने के बाद web results यहाँ दिखेंगे।</div>
-        </div>
+      <section aria-label="Web search results">
+        <h2>Search Results</h2>
+        <div id="results"></div>
       </section>
 
       <section class="section-card">
         <div class="section-heading">
-          <h2>📰 Latest News</h2>
-          <button type="button" id="refreshNewsBtn" class="secondary-button">Refresh</button>
+          <h2>Latest News</h2>
+          <button id="refreshNewsBtn" class="secondary-button" type="button">
+            Refresh
+          </button>
         </div>
+
         <p id="newsStatus" role="status" aria-live="polite"></p>
         <div id="newsGrid"></div>
       </section>
+
+      <section class="useful-section">
+        <h2>Useful Links</h2>
+        <div class="useful-links">
+          <a href="https://www.bing.com/" target="_blank" rel="noopener noreferrer">
+            Web Search
+          </a>
+          <a href="https://www.youtube.com/" target="_blank" rel="noopener noreferrer">
+            YouTube
+          </a>
+          <a href="https://www.wikipedia.org/" target="_blank" rel="noopener noreferrer">
+            Wikipedia
+          </a>
+        </div>
+      </section>
+
+      <section class="info-links" aria-label="Website information">
+        <details class="info-option" id="about-us">
+          <summary>About Us</summary>
+          <p>
+            Search India 🇮🇳 एक भारतीय search platform है।
+            इसका उद्देश्य AI answers और web results को एक जगह उपलब्ध
+            कराना है।
+          </p>
+        </details>
+
+        <details class="info-option" id="contact-us">
+          <summary>Contact Us</summary>
+          <p>सवाल या सुझाव के लिए हमसे संपर्क करें:</p>
+          <p>
+            Email:
+            <a href="mailto:indiasearch1991@gmail.com">
+              indiasearch1991@gmail.com
+            </a>
+          </p>
+          <p>
+            Mobile:
+            <a href="tel:+919967923060">9967923060</a>
+          </p>
+        </details>
+
+        <details class="info-option" id="privacy-policy">
+          <summary>Privacy Policy</summary>
+          <p>
+            अपनी निजी जानकारी सुरक्षित रखें और पासवर्ड किसी के साथ साझा
+            न करें। वेबसाइट द्वारा एकत्र की जाने वाली जानकारी, उसके उपयोग,
+            storage और deletion के बारे में स्पष्ट नीति प्रकाशित की जानी चाहिए।
+          </p>
+        </details>
+
+        <details class="info-option" id="terms">
+          <summary>Terms of Use</summary>
+          <p>
+            Search India का जिम्मेदारी से उपयोग करें। महत्वपूर्ण जानकारी को
+            मूल और विश्वसनीय स्रोतों से जाँचें। लागू नियमों और गोपनीयता नीति
+            को पढ़कर ही वेबसाइट का उपयोग करें।
+          </p>
+        </details>
+      </section>
+
+      <section id="about-developer" class="section-card">
+        <h2>Founder &amp; Developer</h2>
+
+        <div class="founder-profile">
+          <img
+            src="IMG_20261015_211114.jpg"
+            alt="Harsh Thakur — Founder and Developer of Search India"
+            class="founder-photo"
+            onerror="this.onerror=null;this.src='IMG-20261010-WA0000.jpg';"
+          >
+
+          <h3>Harsh Thakur</h3>
+          <p>Founder &amp; Developer of Search India 🇮🇳</p>
+        </div>
+      </section>
     </div>
 
-    <section id="historySection" class="section-card hidden">
-      <div class="section-heading">
-        <h2>🕘 Search History</h2>
-        <button type="button" id="backFromHistoryBtn" class="secondary-button">← Back</button>
-      </div>
+    <section id="historySection" class="hidden">
+      <h2>Search History</h2>
       <div id="historyList"></div>
+
+      <button id="backFromHistoryBtn" class="secondary-button" type="button">
+        Back to Home
+      </button>
     </section>
-
-    <section class="useful-section">
-      <h2>Useful Links</h2>
-      <div class="useful-links">
-        <a href="https://www.bing.com/" target="_blank" rel="noopener noreferrer">Web Search</a>
-        <a href="https://www.youtube.com/" target="_blank" rel="noopener noreferrer">YouTube</a>
-        <a href="https://www.wikipedia.org/" target="_blank" rel="noopener noreferrer">Wikipedia</a>
-      </div>
-    </section>
-
-<section id="about-us" class="section-card">
-  <h2>About Us</h2>
-  <p>
-    Search India 🇮🇳 एक भारतीय search platform है,
-    जिसका उद्देश्य AI answers और web results को एक जगह उपलब्ध कराना है।
-  </p>
-</section>
-
-<section id="about-developer" class="section-card">
-  <h2>Founder &amp; Developer</h2>
-  <div class="founder-profile">
-    <img
-      src="IMG_20261015_211114.jpg"
-      alt="Harsh Thakur — Founder and Developer"
-      class="founder-photo"
-      onerror="this.onerror=null;this.src='IMG_20261015_211114.jpg"
-    >
-    <h3>Harsh Thakur</h3>
-    <p>Founder &amp; Developer of Search India 🇮🇳</p>
-  </div>
-</section>
-
-<section id="contact-us" class="section-card">
-  <h2>Contact Us</h2>
-  <p>Search India से संबंधित सवाल या सुझाव हों, तो संपर्क विवरण यहाँ जोड़े जाएँगे।</p>
-</section>
-
-<section id="privacy-policy" class="section-card">
-  <h2>Privacy Policy</h2>
-  <p>
-    Search India का उपयोग करते समय अपनी निजी जानकारी और पासवर्ड
-    सुरक्षित रखें। किसी के साथ अपना पासवर्ड साझा न करें।
-  </p>
-</section>
-
-<section id="terms" class="section-card">
-  <h2>Terms of Use</h2>
-  <p>Search India का उपयोग जिम्मेदारी से करें और महत्वपूर्ण जानकारी को विश्वसनीय स्रोतों से जाँचें।</p>
-</section>
-  </main>  
+  </main>
 
   <footer class="site-footer">
-    <p>© Search India 🇮🇳</p>
-    <p>जानकारी खोजें, सीखें और आगे बढ़ें।</p>
-    
-<nav aria-label="Footer links">
-  <a href="#about-us">About Us</a> |
-  <a href="#contact-us">Contact Us</a> |
-  <a href="#privacy-policy">Privacy Policy</a> |
-  <a href="#terms">Terms of Use</a>
-</nav>
+    <nav class="footer-info-links" aria-label="Website information links">
+      <a href="#about-us">About Us</a>
+      <a href="#contact-us">Contact Us</a>
+      <a href="#privacy-policy">Privacy Policy</a>
+      <a href="#terms">Terms of Use</a>
+    </nav>
+
+    <p>© <span id="currentYear"></span> Search India 🇮🇳</p>
+    <p>भारत का सर्च प्लेटफॉर्म</p>
   </footer>
+
+  <script>
+    const yearElement = document.getElementById("currentYear");
+    if (yearElement) {
+      yearElement.textContent = new Date().getFullYear();
+    }
+  </script>
 
   <script src="app.js" defer></script>
 </body>
   </html>
-    
+  
