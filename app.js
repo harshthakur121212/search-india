@@ -820,32 +820,21 @@ async function compressImage(file) {
 // ========================================
 
 function openImageChoice() {
-  const choice = window.prompt(
-    "Search India Photo Search\n\n" +
-    "1 = Camera se nayi photo lein\n" +
-    "2 = Gallery se photo chunein\n\n" +
-    "1 ya 2 likhein:"
+  const useCamera = window.confirm(
+    "OK dabayein: Camera kholen\n" +
+    "Cancel dabayein: Gallery se photo chunein"
   );
 
-  if (choice === "1") {
-    if (cameraInput) {
-      cameraInput.click();
-    } else {
-      setStatus(
-        "Camera input nahi mila. index.html check karein."
-      );
-    }
-  } else if (choice === "2") {
-    if (galleryInput) {
-      galleryInput.click();
-    } else {
-      setStatus(
-        "Gallery input nahi mila. index.html check karein."
-      );
-    }
-  } else if (choice !== null) {
-    setStatus("Camera ke liye 1 ya Gallery ke liye 2 likhein.");
+  const input = useCamera ? cameraInput : galleryInput;
+
+  if (!input) {
+    setStatus(
+      "Camera/Gallery input nahi mila. index.html check karein."
+    );
+    return;
   }
+
+  input.click();
 }
 
 if (cameraBtn) {
