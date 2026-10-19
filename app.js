@@ -1153,3 +1153,21 @@ if (searchInput) {
 
 console.log("Search India app.js loaded successfully.");
     
+
+document.querySelectorAll("[data-search]").forEach((button) => {
+  button.addEventListener("click", () => {
+    const input = document.getElementById("searchInput");
+    const form = document.getElementById("searchForm");
+
+    if (!input || !form) return;
+
+    input.value = button.dataset.search;
+    if (typeof form.requestSubmit === "function") {
+      form.requestSubmit();
+    } else {
+      form.dispatchEvent(
+        new Event("submit", { bubbles: true, cancelable: true })
+      );
+    }
+  });
+});
