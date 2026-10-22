@@ -27,9 +27,15 @@ const accountMenu = document.getElementById("accountMenu");
 const addAccountBtn = document.getElementById("addAccountBtn");
 const guestBtn = document.getElementById("guestBtn");
 const logoutBtn = document.getElementById("logoutBtn");
+const switchAccountBtn = document.getElementById("switchAccountBtn");
 const accountUserInfo = document.getElementById("accountUserInfo");
 const accountAvatar = document.getElementById("accountAvatar");
 const accountEmail = document.getElementById("accountEmail");
+const searchStatus = document.getElementById("searchStatus");
+
+function showStatus(message) {
+  if (searchStatus) searchStatus.textContent = message;
+}
 
 function hideMenu() {
   accountMenu?.classList.add("hidden");
@@ -39,29 +45,22 @@ function hideMenu() {
 function updateAccount(user) {
   if (!accountBtn) return;
 
-  if (user && user.email) {
+  if (user?.email) {
     const firstLetter = user.email.trim().charAt(0).toUpperCase();
 
     accountBtn.textContent = firstLetter;
     accountBtn.classList.add("signed-in");
     accountBtn.title = user.email;
-    accountBtn.setAttribute(
-      "aria-label",
-      "Account: " + user.email
-    );
+    accountBtn.setAttribute("aria-label", "Account: " + user.email);
 
-    if (accountAvatar) {
-      accountAvatar.textContent = firstLetter;
-    }
-
-    if (accountEmail) {
-      accountEmail.textContent = user.email;
-    }
+    if (accountAvatar) accountAvatar.textContent = firstLetter;
+    if (accountEmail) accountEmail.textContent = user.email;
 
     accountUserInfo?.classList.remove("hidden");
     addAccountBtn?.classList.add("hidden");
-    guestBtn?.classList.add("hidden");
+    guestBtn?.classList.remove("hidden");
     logoutBtn?.classList.remove("hidden");
+    switchAccountBtn?.classList.remove("hidden");
   } else {
     accountBtn.textContent = "👤";
     accountBtn.classList.remove("signed-in");
@@ -72,6 +71,7 @@ function updateAccount(user) {
     addAccountBtn?.classList.remove("hidden");
     guestBtn?.classList.remove("hidden");
     logoutBtn?.classList.add("hidden");
+    switchAccountBtn?.classList.add("hidden");
   }
 }
 
@@ -82,17 +82,31 @@ addAccountBtn?.addEventListener("click", () => {
   window.location.href = "login.html";
 });
 
-logoutBtn?.addEventListener("click", async () => {
+guestBtn?.addEventListener("click", () => {
+  hideMenu();
+  showStatus("Aap bina account ke Search India use kar rahe hain.");
+});
+
+switchAccountBtn?.addEventListener("click", async () => {
+  hideMenu();
+
   try {
     await signOut(auth);
-    hideMenu();
+    window.location.href = "login.html";
+  } catch (error) {
+    console.error("Switch account failed:", error);
+    showStatus("Account switch nahi ho paaya. Dobara try karein.");
+  }
+});
 
-    const status = document.getElementById("searchStatus");
-    if (status) status.textContent = "Aap logout ho gaye hain.";
+logoutBtn?.addEventListener("click", async () => {
+  hideMenu();
+
+  try {
+    await signOut(auth);
+    showStatus("Aap logout ho gaye hain.");
   } catch (error) {
     console.error("Logout failed:", error);
-
-    const status = document.getElementById("searchStatus");
-    if (status) status.textContent = "Logout nahi ho paaya. Dobara try karein.";
+    showStatus("Logout nahi ho paaya. Dobara try karein.");
   }
 });
