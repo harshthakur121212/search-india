@@ -1,35 +1,299 @@
-
 <!DOCTYPE html>
 <html lang="hi">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Search India — Account</title>
+  <meta name="theme-color" content="#1769e0">
+  <meta name="description" content="Search India account login and signup">
+  <title>Login / Sign up — Search India 🇮🇳</title>
   <link rel="stylesheet" href="style.css">
+
+  <style>
+    * { box-sizing: border-box; }
+
+    body {
+      min-height: 100vh;
+      margin: 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 20px;
+      background: linear-gradient(135deg, #eef5ff, #f8faff);
+      font-family: Arial, sans-serif;
+    }
+
+    .auth-card {
+      width: 100%;
+      max-width: 420px;
+      padding: 28px 24px;
+      background: #fff;
+      border: 1px solid #e2e8f0;
+      border-radius: 22px;
+      box-shadow: 0 12px 40px rgba(25, 65, 120, .10);
+    }
+
+    .brand {
+      text-align: center;
+      margin-bottom: 24px;
+    }
+
+    .brand-icon {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      width: 58px;
+      height: 58px;
+      margin-bottom: 10px;
+      border-radius: 18px;
+      background: #1769e0;
+      color: white;
+      font-size: 27px;
+    }
+
+    .brand h1 {
+      margin: 0;
+      font-size: 25px;
+      color: #1769e0;
+    }
+
+    .brand p {
+      margin: 8px 0 0;
+      color: #64748b;
+      font-size: 14px;
+    }
+
+    .auth-tabs {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 6px;
+      padding: 5px;
+      margin-bottom: 22px;
+      background: #f1f5f9;
+      border-radius: 12px;
+    }
+
+    .auth-tabs button {
+      min-height: 43px;
+      border: 0;
+      border-radius: 9px;
+      background: transparent;
+      color: #475569;
+      font-size: 15px;
+      font-weight: 600;
+      cursor: pointer;
+    }
+
+    .auth-tabs button.active {
+      background: #fff;
+      color: #1769e0;
+      box-shadow: 0 2px 7px #00000010;
+    }
+
+    .auth-card label {
+      display: block;
+      margin: 16px 0 7px;
+      color: #334155;
+      font-size: 14px;
+      font-weight: 600;
+    }
+
+    .auth-card input {
+      display: block;
+      width: 100%;
+      min-height: 47px;
+      padding: 12px;
+      border: 1px solid #cbd5e1;
+      border-radius: 10px;
+      background: #fff;
+      color: #172033;
+      font-size: 16px;
+      outline: none;
+    }
+
+    .auth-card input:focus {
+      border-color: #1769e0;
+      box-shadow: 0 0 0 3px #1769e01c;
+    }
+
+    .password-wrap {
+      position: relative;
+    }
+
+    .password-wrap input {
+      padding-right: 76px;
+    }
+
+    .show-password {
+      position: absolute;
+      top: 50%;
+      right: 8px;
+      transform: translateY(-50%);
+      padding: 7px;
+      border: 0;
+      background: transparent;
+      color: #1769e0;
+      font-size: 12px;
+      font-weight: 700;
+      cursor: pointer;
+    }
+
+    .primary-btn {
+      width: 100%;
+      min-height: 48px;
+      margin-top: 22px;
+      border: 0;
+      border-radius: 11px;
+      background: #1769e0;
+      color: white;
+      font-size: 16px;
+      font-weight: 700;
+      cursor: pointer;
+    }
+
+    .primary-btn:disabled {
+      opacity: .65;
+      cursor: wait;
+    }
+
+    #authStatus {
+      min-height: 20px;
+      margin: 14px 0 0;
+      text-align: center;
+      font-size: 14px;
+      overflow-wrap: anywhere;
+    }
+
+    .back-link {
+      display: block;
+      margin-top: 22px;
+      text-align: center;
+      color: #1769e0;
+      text-decoration: none;
+      font-size: 14px;
+    }
+
+    .security-note {
+      margin: 18px 0 0;
+      color: #64748b;
+      font-size: 12px;
+      text-align: center;
+      line-height: 1.6;
+    }
+
+    @media (max-width: 360px) {
+      .auth-card { padding: 23px 17px; }
+      .brand h1 { font-size: 22px; }
+    }
+  </style>
 </head>
+
 <body>
-  <main class="container">
-    <h1>🇮🇳 Search India</h1>
-    <h2>Login / Sign up</h2>
+  <main class="auth-card">
+    <header class="brand">
+      <div class="brand-icon" aria-hidden="true">🇮🇳</div>
+      <h1>Search India</h1>
+      <p>आपकी खोज, आपका भारत</p>
+    </header>
+
+    <div class="auth-tabs" role="tablist" aria-label="Account option">
+      <button id="loginTab" class="active" type="button"
+        role="tab" aria-selected="true">Login</button>
+      <button id="signupTab" type="button"
+        role="tab" aria-selected="false">Sign up</button>
+    </div>
+
+    <h2 id="formTitle">अपने अकाउंट में लॉगिन करें</h2>
 
     <form id="authForm">
-      <label for="email">Email</label>
-      <input id="email" type="email" required
-        autocomplete="email" placeholder="अपना email लिखें">
+      <label for="email">Email address</label>
+      <input id="email" name="email" type="email" required
+        autocomplete="email" inputmode="email"
+        placeholder="अपना email लिखें">
 
       <label for="password">Password</label>
-      <input id="password" type="password" required
-        minlength="6" autocomplete="current-password"
-        placeholder="कम से कम 6 अक्षर">
+      <div class="password-wrap">
+        <input id="password" name="password" type="password"
+          required minlength="6" autocomplete="current-password"
+          placeholder="कम से कम 6 अक्षर">
+        <button class="show-password" id="togglePassword"
+          type="button" aria-label="Password दिखाएँ">दिखाएँ</button>
+      </div>
 
-      <button type="submit" id="loginBtn">Login</button>
-      <button type="button" id="signupBtn">Create account</button>
+      <button class="primary-btn" type="submit" id="loginBtn">
+        Login
+      </button>
+
+      <button type="button" id="signupBtn" hidden>
+        Create account
+      </button>
     </form>
 
-    <p id="authStatus" role="status"></p>
-    <p><a href="index.html">← Search India पर वापस जाएँ</a></p>
+    <p id="authStatus" role="status" aria-live="polite"></p>
+
+    <p class="security-note">
+      अपने अकाउंट का पासवर्ड किसी के साथ साझा न करें।
+    </p>
+
+    <a class="back-link" href="index.html">
+      ← Search India पर वापस जाएँ
+    </a>
   </main>
+
+  <script>
+    (() => {
+      const loginTab = document.getElementById("loginTab");
+      const signupTab = document.getElementById("signupTab");
+      const formTitle = document.getElementById("formTitle");
+      const loginBtn = document.getElementById("loginBtn");
+      const signupBtn = document.getElementById("signupBtn");
+      const password = document.getElementById("password");
+      const togglePassword = document.getElementById("togglePassword");
+
+      let mode = "login";
+
+      function setMode(nextMode) {
+        mode = nextMode;
+        const signingUp = mode === "signup";
+
+        loginTab.classList.toggle("active", !signingUp);
+        signupTab.classList.toggle("active", signingUp);
+        loginTab.setAttribute("aria-selected", String(!signingUp));
+        signupTab.setAttribute("aria-selected", String(signingUp));
+
+        formTitle.textContent = signingUp
+          ? "नया अकाउंट बनाएँ"
+          : "अपने अकाउंट में लॉगिन करें";
+
+        loginBtn.textContent = signingUp
+          ? "Create account"
+          : "Login";
+
+        signupBtn.hidden = !signingUp;
+        password.autocomplete = signingUp
+          ? "new-password"
+          : "current-password";
+
+        document.getElementById("authStatus").textContent = "";
+      }
+
+      loginTab.addEventListener("click", () => setMode("login"));
+      signupTab.addEventListener("click", () => setMode("signup"));
+
+      togglePassword.addEventListener("click", () => {
+        const isHidden = password.type === "password";
+        password.type = isHidden ? "text" : "password";
+        togglePassword.textContent = isHidden ? "छिपाएँ" : "दिखाएँ";
+        togglePassword.setAttribute(
+          "aria-label",
+          isHidden ? "Password छिपाएँ" : "Password दिखाएँ"
+        );
+      });
+
+      // auth.js can read this to decide which action to perform.
+      window.searchIndiaAuthMode = () => mode;
+    })();
+  </script>
 
   <script type="module" src="auth.js"></script>
 </body>
-</html>
+  </html>
