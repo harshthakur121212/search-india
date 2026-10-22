@@ -732,3 +732,63 @@ button {
   background: #eef4ff;
   border-color: #2563eb;
 }
+/* Search India account profile */
+.account-button {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 44px;
+  height: 44px;
+  border: 1px solid #dadce0;
+  border-radius: 50%;
+  background: #fff;
+  color: #1769e0;
+  font-size: 20px;
+  font-weight: 700;
+}
+
+.account-button.signed-in {
+  background: #1769e0;
+  color: #fff;
+  border-color: #1769e0;
+}
+
+.account-user-info {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 12px;
+  border-bottom: 1px solid #eee;
+  margin-bottom: 6px;
+}
+
+.account-avatar {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  width: 42px;
+  height: 42px;
+  border-radius: 50%;
+  background: #1769e0;
+  color: white;
+  font-size: 18px;
+  font-weight: 700;
+}
+
+.account-user-details {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 0;
+}
+
+.account-user-details strong {
+  font-size: 14px;
+}
+
+.account-user-details span {
+  color: #5f6368;
+  font-size: 12px;
+  overflow-wrap: anywhere;
+  }
